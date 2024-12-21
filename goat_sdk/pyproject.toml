@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "goat-sdk"
+version = "0.1.0"
+description = "Mode SDK for Python"
+requires-python = ">=3.8"
+authors = [
+    {name = "Mode Labs", email = "info@mode.network"},
+]
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=goat_sdk --cov-report=term-missing"
+testpaths = [
+    "goat_sdk/plugins/jupiter/tests",
+]
+asyncio_mode = "auto"
+  

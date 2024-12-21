@@ -1,0 +1,188 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "goat-sdk"
+version = "0.1.0"
+authors = [
+  { name="GOAT SDK Team", email="team@goatsdk.io" },
+]
+description = "Python SDK for GOAT Protocol - A comprehensive DeFi and NFT trading toolkit"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["defi", "nft", "blockchain", "trading", "crypto", "ethereum", "solana"]
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    # Core dependencies
+    "pydantic>=2.0.0",
+    "aiohttp>=3.8.0",
+    "websockets>=10.0",
+    "python-dotenv>=0.19.0",
+    
+    # Blockchain specific
+    "web3>=6.0.0",
+    "eth-account>=0.8.0",
+    "eth-typing>=3.0.0",
+    "solana>=0.30.0",
+    "anchorpy>=0.17.0",
+    "base58>=2.1.0",
+    
+    # Data handling
+    "pandas>=1.3.0",
+    "numpy>=1.21.0",
+    "construct-typing>=0.5.0",
+    
+    # Monitoring and logging
+    "prometheus-client>=0.14.0",
+    "opentelemetry-api>=1.15.0",
+    "opentelemetry-sdk>=1.15.0",
+    "opentelemetry-instrumentation>=0.36.0",
+    
+    # Utilities
+    "tenacity>=8.0.0",  # Retry handling
+    "cachetools>=5.0.0",  # Caching
+    "python-dateutil>=2.8.0",
+    "pytz>=2022.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.2.0",
+    "aioresponses>=0.7.4",
+    "responses>=0.23.0",
+    "freezegun>=1.2.0",
+]
+
+dev = [
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "bandit>=1.7.0",
+]
+
+docs = [
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "sphinx-autodoc-typehints>=1.22.0",
+    "myst-parser>=1.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/goat-sdk/python"
+"Documentation" = "https://docs.goatsdk.io"
+"Bug Tracker" = "https://github.com/goat-sdk/python/issues"
+"Changelog" = "https://github.com/goat-sdk/python/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["goat_sdk"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+^/tests/data/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = """
+    -v
+    --tb=short
+    --cov=goat_sdk
+    --cov-report=term-missing
+    --cov-report=xml
+    --cov-report=html
+    --doctest-modules
+    --durations=10
+    """
+markers = [
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow",
+    "network: marks tests that require network access",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["goat_sdk"]
+omit = [
+    "tests/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "examples"]
+skips = ["B101"]

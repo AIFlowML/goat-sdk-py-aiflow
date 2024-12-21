@@ -1,0 +1,8 @@
+pydantic>=2.5.2
+pytest>=7.4.3
+python-dateutil>=2.8.2
+aiohttp>=3.9.1
+backoff>=2.2.1
+tenacity>=8.2.3
+ujson>=5.9.0
+websockets>=12.0 

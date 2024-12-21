@@ -1,0 +1,51 @@
+# Project Environment Rules
+# Python Virtual Environment
+venv_path=/Users/ilessio/dev-agents/mode_hack/goat/python_goat/venv
+
+# Environment Activation Rules
+deactivate_conda=true
+activate_venv=true
+
+# Project-specific Settings
+project_root=/Users/ilessio/dev-agents/mode_hack/goat/python_goat
+python_version=3.11
+test_command="python -m pytest"
+
+# Development Guidelines
+use_black=true
+use_flake8=true
+max_line_length=100
+
+# Dependencies
+package_manager=pip
+requirements_file=requirements.txt
+
+# Testing
+test_directory=tests
+pytest_args="-v -s"
+
+# Documentation
+docs_directory=Docs
+maintain_docs=true
+
+# Git Rules
+branch_prefix=feature/
+commit_convention=conventional_commits
+
+# Code Quality
+type_checking=true
+use_mypy=true
+enforce_docstrings=true
+
+# Project Structure
+src_directory=goat_sdk
+tests_directory=tests
+docs_directory=Docs
+
+# Build and Distribution
+build_system=setuptools
+dist_directory=dist
+
+# Security
+check_dependencies=true
+scan_vulnerabilities=true
