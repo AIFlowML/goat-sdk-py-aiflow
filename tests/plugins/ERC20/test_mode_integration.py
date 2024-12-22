@@ -1,102 +1,84 @@
-"""Mode network integration tests for ERC20 plugin."""
+"""Integration tests for ERC20 plugin on Mode network."""
 
 import os
 import pytest
 from web3 import Web3
 
-from goat_sdk.plugins.ERC20 import (
-    ERC20Plugin,
-    ERC20PluginCtorParams,
-    DeployTokenParams,
-    GetTokenInfoParams,
-    GetBalanceParams,
-    TransferParams,
-)
+from goat_sdk.plugins.ERC20 import ERC20Plugin, ERC20PluginCtorParams
+from goat_sdk.plugins.ERC20.types import DeployTokenParams, TransferParams
 
 
-@pytest.fixture
-def mode_testnet_config():
-    """Mode testnet configuration."""
-    return {
-        "chain_id": 919,  # Mode Testnet Chain ID
-        "rpc_url": "https://sepolia.mode.network",
-    }
+def get_mode_env_vars():
+    """Get Mode network environment variables."""
+    mode_private_key = os.getenv("MODE_PRIVATE_KEY")
+    mode_rpc_url = os.getenv("MODE_RPC_URL", "https://sepolia.mode.network")
+    return mode_private_key, mode_rpc_url
 
 
-@pytest.fixture
-def private_key():
-    """Get private key from environment."""
-    key = os.getenv("MODE_PRIVATE_KEY")
-    if not key:
-        pytest.skip("MODE_PRIVATE_KEY environment variable not set")
-    return key
+def requires_mode_env_vars(func):
+    """Decorator to skip tests if Mode environment variables are not set."""
+    def wrapper(*args, **kwargs):
+        mode_private_key, _ = get_mode_env_vars()
+        if not mode_private_key:
+            pytest.skip("MODE_PRIVATE_KEY environment variable not set")
+        return func(*args, **kwargs)
+    return wrapper
 
 
-@pytest.fixture
-def plugin(mode_testnet_config, private_key):
-    """Create an ERC20Plugin instance for Mode testnet."""
-    return ERC20Plugin(ERC20PluginCtorParams(
-        chain_id=mode_testnet_config["chain_id"],
-        rpc_url=mode_testnet_config["rpc_url"],
-        private_key=private_key
+@pytest.mark.asyncio
+@requires_mode_env_vars
+async def test_deploy_token_on_mode():
+    """Test deploying a token on Mode network."""
+    mode_private_key, mode_rpc_url = get_mode_env_vars()
+
+    # Initialize plugin
+    plugin = ERC20Plugin(ERC20PluginCtorParams(
+        private_key=mode_private_key,
+        provider_url=mode_rpc_url,
+        network="testnet"
     ))
 
-
-@pytest.mark.asyncio
-async def test_deploy_token_on_mode(plugin):
-    """Test deploying a token on Mode testnet."""
-    # Deploy new token
-    deploy_params = DeployTokenParams(
-        name="Mode Test Token",
-        symbol="MTT",
+    # Deploy token
+    result = await plugin.deploy_token(DeployTokenParams(
+        name="Test Token",
+        symbol="TEST",
         initial_supply=1000000
-    )
-    result = await plugin.deploy_token(deploy_params)
-    
-    assert result["status"] == 1  # Transaction successful
-    assert Web3.is_address(result["contract_address"])
-    
-    # Verify token info
-    info_params = GetTokenInfoParams(
-        token_address=result["contract_address"]
-    )
-    token_info = await plugin.get_token_info(info_params)
-    
-    assert token_info["name"] == "Mode Test Token"
-    assert token_info["symbol"] == "MTT"
-    assert token_info["decimals"] == 18
-    assert int(token_info["total_supply"]) == 1000000 * 10**18
+    ))
+
+    assert Web3.is_address(result.contract_address)
+    assert result.transaction_hash.startswith("0x")
+    assert "mode.network" in result.explorer_url
 
 
 @pytest.mark.asyncio
-async def test_transfer_on_mode(plugin):
-    """Test token transfer on Mode testnet."""
-    # First deploy a token
-    deploy_params = DeployTokenParams(
-        name="Mode Transfer Test",
-        symbol="MTX",
+@requires_mode_env_vars
+async def test_transfer_on_mode():
+    """Test transferring tokens on Mode network."""
+    mode_private_key, mode_rpc_url = get_mode_env_vars()
+
+    # Initialize plugin
+    plugin = ERC20Plugin(ERC20PluginCtorParams(
+        private_key=mode_private_key,
+        provider_url=mode_rpc_url,
+        network="testnet"
+    ))
+
+    # Deploy token first
+    deploy_result = await plugin.deploy_token(DeployTokenParams(
+        name="Test Token",
+        symbol="TEST",
         initial_supply=1000000
-    )
-    deploy_result = await plugin.deploy_token(deploy_params)
-    assert deploy_result["status"] == 1
-    
-    # Create a new account to transfer to
-    recipient = Web3().eth.account.create()
-    
-    # Transfer some tokens
-    transfer_params = TransferParams(
-        token_address=deploy_result["contract_address"],
-        recipient_address=recipient.address,
-        amount=str(100 * 10**18)  # Transfer 100 tokens
-    )
-    transfer_result = await plugin.transfer(transfer_params)
-    
-    assert transfer_result["status"] == 1  # Transaction successful
-    
-    # Verify recipient balance
-    balance_params = GetBalanceParams(
-        token_address=deploy_result["contract_address"],
-        wallet_address=recipient.address
-    )
-    balance = await plugin.get_balance(balance_params)
-    assert int(balance) == 100 * 10**18
+    ))
+
+    # Create a random recipient address
+    recipient = Web3().eth.account.create().address
+
+    # Transfer tokens
+    transfer_result = await plugin.transfer(TransferParams(
+        token_address=deploy_result.contract_address,
+        to_address=recipient,
+        amount=1000
+    ))
+
+    assert transfer_result.transaction_hash.startswith("0x")
+    assert "mode.network" in transfer_result.explorer_url

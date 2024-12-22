@@ -3,7 +3,7 @@
 from typing import List, Optional, Dict, Any
 from solana.rpc.async_api import AsyncClient
 from solana.transaction import Transaction, TransactionInstruction
-from solders.pubkey import PublicKey
+from solders.pubkey import Pubkey
 from goat_sdk.core.plugin_base import PluginBase
 from goat_sdk.core.utils.retry import with_retry
 from goat_sdk.core.telemetry.middleware import trace_transaction
@@ -14,10 +14,10 @@ from .types import (
     CompressedNFTInfo
 )
 
-TOKEN_PROGRAM_ID = PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-METADATA_PROGRAM_ID = PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
-MASTER_EDITION_PROGRAM_ID = PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
-BUBBLEGUM_PROGRAM_ID = PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+TOKEN_PROGRAM_ID = Pubkey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+METADATA_PROGRAM_ID = Pubkey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+MASTER_EDITION_PROGRAM_ID = Pubkey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+BUBBLEGUM_PROGRAM_ID = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
 class NFTPlugin(PluginBase):
     """Plugin for NFT operations on Solana."""
@@ -58,7 +58,7 @@ class NFTPlugin(PluginBase):
         if not params.tree_address:
             tree_address = await self._create_merkle_tree()
         else:
-            tree_address = PublicKey(params.tree_address)
+            tree_address = Pubkey(params.tree_address)
 
         # Create mint instruction
         mint_ix = await self._create_compressed_mint_instruction(
@@ -101,7 +101,7 @@ class NFTPlugin(PluginBase):
         # Create transfer instruction
         transfer_ix = await self._create_compressed_transfer_instruction(
             asset_proof,
-            PublicKey(params.to_address)
+            Pubkey(params.to_address)
         )
 
         # Send transaction
@@ -110,14 +110,14 @@ class NFTPlugin(PluginBase):
         result = await self.wallet_client.send_transaction(transaction)
         return result["hash"]
 
-    async def _create_merkle_tree(self) -> PublicKey:
+    async def _create_merkle_tree(self) -> Pubkey:
         """Create a new merkle tree for compressed NFTs."""
         # Implementation details for creating merkle tree
         pass
 
     async def _create_compressed_mint_instruction(
         self,
-        tree_address: PublicKey,
+        tree_address: Pubkey,
         metadata: NFTMetadata,
         max_depth: int,
         max_buffer_size: int
@@ -128,7 +128,7 @@ class NFTPlugin(PluginBase):
 
     async def _get_compressed_nft_leaf(
         self,
-        tree_address: PublicKey,
+        tree_address: Pubkey,
         transaction_signature: str
     ) -> Dict[str, Any]:
         """Get leaf information for compressed NFT."""
@@ -143,7 +143,7 @@ class NFTPlugin(PluginBase):
     async def _create_compressed_transfer_instruction(
         self,
         asset_proof: Dict[str, Any],
-        to_address: PublicKey
+        to_address: Pubkey
     ) -> TransactionInstruction:
         """Create instruction for transferring compressed NFT."""
         # Implementation details for creating transfer instruction
@@ -167,12 +167,12 @@ class NFTPlugin(PluginBase):
             await self._create_master_edition(mint_account, params.max_supply)
         
         if params.collection_mint:
-            await self._verify_collection(mint_account, PublicKey(params.collection_mint))
+            await self._verify_collection(mint_account, Pubkey(params.collection_mint))
         
         if params.verify_creators and params.metadata.creators:
             for creator in params.metadata.creators:
                 if creator.verified:
-                    await self._verify_creator(mint_account, PublicKey(creator.address))
+                    await self._verify_creator(mint_account, Pubkey(creator.address))
         
         return NFTInfo(
             mint_address=str(mint_account.public_key),
@@ -216,8 +216,8 @@ class NFTPlugin(PluginBase):
             Transaction signature
         """
         transfer_ix = await self._create_transfer_instruction(
-            PublicKey(params.mint_address),
-            PublicKey(params.to_address)
+            Pubkey(params.mint_address),
+            Pubkey(params.to_address)
         )
         
         transaction = Transaction()
@@ -257,7 +257,7 @@ class NFTPlugin(PluginBase):
         Returns:
             Updated NFT information
         """
-        metadata_address = await self._get_metadata_address(PublicKey(params.mint_address))
+        metadata_address = await self._get_metadata_address(Pubkey(params.mint_address))
         update_ix = await self._create_update_metadata_instruction(
             metadata_address,
             params.metadata,
@@ -281,8 +281,8 @@ class NFTPlugin(PluginBase):
             NFT information
         """
         # Get account info from blockchain
-        account_info = await self.connection.get_account_info(PublicKey(mint_address))
-        metadata_address = await self._get_metadata_address(PublicKey(mint_address))
+        account_info = await self.connection.get_account_info(Pubkey(mint_address))
+        metadata_address = await self._get_metadata_address(Pubkey(mint_address))
         metadata_info = await self.connection.get_account_info(metadata_address)
         
         # Parse metadata
@@ -306,7 +306,7 @@ class NFTPlugin(PluginBase):
         """
         # Get token accounts from blockchain
         token_accounts = await self.connection.get_token_accounts_by_owner(
-            PublicKey(owner_address),
+            Pubkey(owner_address),
             {"programId": TOKEN_PROGRAM_ID}
         )
         
@@ -369,30 +369,30 @@ class NFTPlugin(PluginBase):
     async def _create_mint_account(self):
         """Create mint account."""
         mock_mint = MagicMock()
-        mock_mint.public_key = PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        mock_mint.public_key = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
         return mock_mint
 
-    async def _create_metadata_account(self, mint_account: PublicKey, params: MintNFTParams) -> PublicKey:
+    async def _create_metadata_account(self, mint_account: Pubkey, params: MintNFTParams) -> Pubkey:
         """Create metadata account."""
-        return PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
-    async def _create_master_edition(self, mint_account: PublicKey, max_supply: Optional[int]) -> PublicKey:
+    async def _create_master_edition(self, mint_account: Pubkey, max_supply: Optional[int]) -> Pubkey:
         """Create master edition."""
-        return PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
-    async def _verify_collection(self, mint_account: PublicKey, collection_mint: PublicKey):
+    async def _verify_collection(self, mint_account: Pubkey, collection_mint: Pubkey):
         """Verify NFT as part of collection."""
         pass
 
-    async def _verify_creator(self, mint_account: PublicKey, creator_address: PublicKey):
+    async def _verify_creator(self, mint_account: Pubkey, creator_address: Pubkey):
         """Verify creator for NFT."""
         pass
 
-    async def _get_metadata_address(self, mint: PublicKey) -> PublicKey:
+    async def _get_metadata_address(self, mint: Pubkey) -> Pubkey:
         """Get metadata account address for mint."""
-        return PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
-    async def _create_transfer_instruction(self, mint: PublicKey, to_address: PublicKey) -> TransactionInstruction:
+    async def _create_transfer_instruction(self, mint: Pubkey, to_address: Pubkey) -> TransactionInstruction:
         """Create transfer instruction."""
         return TransactionInstruction(
             program_id=TOKEN_PROGRAM_ID,
@@ -406,7 +406,7 @@ class NFTPlugin(PluginBase):
 
     async def _create_update_metadata_instruction(
         self,
-        metadata_address: PublicKey,
+        metadata_address: Pubkey,
         metadata: NFTMetadata,
         is_mutable: Optional[bool],
         update_authority: Optional[str]

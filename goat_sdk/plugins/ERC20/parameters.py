@@ -1,59 +1,186 @@
 """Parameter types for the ERC20 plugin."""
 
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from web3 import Web3
 
 
 class ERC20PluginCtorParams(BaseModel):
     """Parameters for constructing an ERC20Plugin instance."""
-    chain_id: int = Field(..., description="Chain ID of the network")
-    rpc_url: str = Field(..., description="RPC URL for the network")
-    private_key: Optional[str] = Field(None, description="Private key for transactions")
+    private_key: str = Field(
+        ...,
+        description="Private key for signing transactions"
+    )
+    provider_url: str = Field(
+        ...,
+        description="URL of the Mode network provider"
+    )
+    network: str = Field(
+        default="testnet",
+        description="Mode network to connect to (mainnet or testnet)"
+    )
 
 
 class GetTokenInfoParams(BaseModel):
     """Parameters for getting token information."""
-    token_address: str = Field(..., description="Address of the token contract")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    address: Optional[str] = Field(
+        None,
+        description="Optional address to get balance for"
+    )
+
+    @field_validator('token_address', 'address')
+    def validate_address(cls, v: Optional[str]) -> Optional[str]:
+        """Validate Ethereum address."""
+        if v is None:
+            return None
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class GetBalanceParams(BaseModel):
     """Parameters for getting token balance."""
-    token_address: str = Field(..., description="Address of the token contract")
-    wallet_address: str = Field(..., description="Address to check balance for")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    wallet_address: str = Field(
+        ...,
+        description="The wallet address to get balance for"
+    )
+
+    @field_validator('token_address', 'wallet_address')
+    def validate_address(cls, v: str) -> str:
+        """Validate Ethereum address."""
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class GetAllowanceParams(BaseModel):
     """Parameters for getting token allowance."""
-    token_address: str = Field(..., description="Address of the token contract")
-    owner_address: str = Field(..., description="Address of the token owner")
-    spender_address: str = Field(..., description="Address of the spender")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    owner_address: str = Field(
+        ...,
+        description="The address of the token owner"
+    )
+    spender_address: str = Field(
+        ...,
+        description="The address of the spender"
+    )
+
+    @field_validator('token_address', 'owner_address', 'spender_address')
+    def validate_address(cls, v: str) -> str:
+        """Validate Ethereum address."""
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class ApproveParams(BaseModel):
     """Parameters for approving token spending."""
-    token_address: str = Field(..., description="Address of the token contract")
-    spender_address: str = Field(..., description="Address of the spender")
-    amount: str = Field(..., description="Amount to approve")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    spender_address: str = Field(
+        ...,
+        description="The address of the spender"
+    )
+    amount: int = Field(
+        ...,
+        description="The amount to approve in base units",
+        gt=0
+    )
+
+    @field_validator('token_address', 'spender_address')
+    def validate_address(cls, v: str) -> str:
+        """Validate Ethereum address."""
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class TransferParams(BaseModel):
     """Parameters for transferring tokens."""
-    token_address: str = Field(..., description="Address of the token contract")
-    recipient_address: str = Field(..., description="Address to transfer tokens to")
-    amount: str = Field(..., description="Amount to transfer")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    to_address: str = Field(
+        ...,
+        description="The recipient address"
+    )
+    amount: int = Field(
+        ...,
+        description="The amount to transfer in base units",
+        gt=0
+    )
+
+    @field_validator('token_address', 'to_address')
+    def validate_address(cls, v: str) -> str:
+        """Validate Ethereum address."""
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class TransferFromParams(BaseModel):
     """Parameters for transferring tokens on behalf of another address."""
-    token_address: str = Field(..., description="Address of the token contract")
-    sender_address: str = Field(..., description="Address to transfer tokens from")
-    recipient_address: str = Field(..., description="Address to transfer tokens to")
-    amount: str = Field(..., description="Amount to transfer")
+    token_address: str = Field(
+        ...,
+        description="The contract address of the token"
+    )
+    from_address: str = Field(
+        ...,
+        description="The address to transfer tokens from"
+    )
+    to_address: str = Field(
+        ...,
+        description="The address to transfer tokens to"
+    )
+    amount: int = Field(
+        ...,
+        description="The amount to transfer in base units",
+        gt=0
+    )
+
+    @field_validator('token_address', 'from_address', 'to_address')
+    def validate_address(cls, v: str) -> str:
+        """Validate Ethereum address."""
+        if not Web3.is_address(v):
+            raise ValueError("Invalid Ethereum address")
+        return Web3.to_checksum_address(v)
 
 
 class DeployTokenParams(BaseModel):
-    """Parameters for deploying a new token contract."""
-    name: str = Field(..., description="Name of the token")
-    symbol: str = Field(..., description="Symbol of the token")
-    initial_supply: int = Field(..., description="Initial supply of tokens")
-    private_key: Optional[str] = Field(None, description="Private key for deployment")
+    """Parameters for deploying a new token."""
+    name: str = Field(
+        ...,
+        description="The name of the token",
+        min_length=1,
+        max_length=64
+    )
+    symbol: str = Field(
+        ...,
+        description="The symbol of the token",
+        min_length=1,
+        max_length=11
+    )
+    initial_supply: int = Field(
+        ...,
+        description="The initial supply of the token in base units",
+        gt=0
+    )
+
+    @field_validator('symbol')
+    def validate_symbol(cls, v: str) -> str:
+        """Validate token symbol."""
+        return v.upper()

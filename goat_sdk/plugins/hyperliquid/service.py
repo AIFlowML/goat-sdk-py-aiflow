@@ -40,40 +40,32 @@ class HyperliquidService:
         use_ssl: bool = True,
         ssl_verify: bool = True
     ):
-        """Initialize service.
+        """Initialize service."""
+        # Load from env if not provided
+        self.api_key = api_key or os.getenv("API_KEY")
+        self.api_secret = api_secret or os.getenv("API_SECRET")
+        self.testnet = testnet if testnet is not None else not os.getenv("MAINNET", "false").lower() == "true"
+        self.eth_wallet = os.getenv("ETH_WALLET_ADDRESS")
         
-        Args:
-            api_key: API key
-            api_secret: API secret
-            testnet: Whether to use testnet
-            session: Optional aiohttp session
-            logger: Optional logger
-            use_ssl: Whether to use SSL
-            ssl_verify: Whether to verify SSL certificates
-        """
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.testnet = testnet
-        
-        # Use environment variables for URLs with fallbacks
-        if testnet:
-            self.base_url = os.getenv("HYPERLIQUID_TESTNET_URL", "https://api.hyperliquid-testnet.xyz")
-            self.ws_url = os.getenv("HYPERLIQUID_WS_TESTNET_URL", "wss://api.hyperliquid-testnet.xyz/ws")
+        # Set base URLs based on testnet flag
+        if self.testnet:
+            self.base_url = "https://api.hyperliquid-testnet.xyz"
+            self.ws_url = "wss://api.hyperliquid-testnet.xyz/ws"
         else:
-            self.base_url = os.getenv("HYPERLIQUID_MAINNET_URL", "https://api.hyperliquid.xyz")
-            self.ws_url = os.getenv("HYPERLIQUID_WS_MAINNET_URL", "wss://api.hyperliquid.xyz/ws")
+            self.base_url = "https://api.hyperliquid.xyz"
+            self.ws_url = "wss://api.hyperliquid.xyz/ws"
         
         # Create SSL context based on settings
         if use_ssl:
-            ssl_context = ssl.create_default_context()
+            self.ssl_context = ssl.create_default_context()
             if not ssl_verify:
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
+                self.ssl_context.check_hostname = False
+                self.ssl_context.verify_mode = ssl.CERT_NONE
         else:
-            ssl_context = False
+            self.ssl_context = False
 
         # Create connector with SSL settings
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        connector = aiohttp.TCPConnector(ssl=self.ssl_context)
         
         self.session = session or aiohttp.ClientSession(connector=connector)
         self.logger = logger or logging.getLogger(__name__)
@@ -94,9 +86,9 @@ class HyperliquidService:
         method: str,
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
-        rate_limit_key: str = "default"
-    ) -> Dict[str, Any]:
-        """Make HTTP request to API.
+        rate_limit_key: Optional[str] = None
+    ) -> Any:
+        """Make HTTP request to Hyperliquid API.
         
         Args:
             method: HTTP method
@@ -106,57 +98,36 @@ class HyperliquidService:
             
         Returns:
             Response data
-            
-        Raises:
-            RequestError: If request fails
         """
-        try:
-            # Apply rate limiting
-            await self.rate_limiters[rate_limit_key].acquire()
-            
-            # Build URL
-            url = f"{self.base_url}/{endpoint}"
-            
-            # Add auth headers if available
-            headers = {}
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
-            
-            # Make request
-            async with self.session.request(
+        url = f"{self.base_url}/{endpoint}"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "goat-sdk/1.0.0"
+        }
+        
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.request(
                 method,
                 url,
                 json=data,
-                headers=headers
+                ssl=self.ssl_context
             ) as response:
-                if response.status >= 400:
-                    error_text = await response.text()
-                    raise RequestError(
-                        f"HTTP {response.status}: {error_text}",
-                        status_code=response.status
-                    )
+                if response.status != 200:
+                    raise ValueError(f"Request failed with status {response.status}")
                 return await response.json()
-                
-        except Exception as e:
-            self.logger.error(f"Request failed: {str(e)}")
-            raise RequestError(str(e))
             
     async def get_markets(self) -> List[MarketInfo]:
-        """Get list of available markets.
-        
-        Returns:
-            List of market info objects
-        """
-        # Get market metadata
+        """Get list of available markets."""
         meta_response = await self._request(
             "POST",
             "info",
-            data={"type": "metaAndAssetCtxs"},
+            data={"type": "meta"},
             rate_limit_key="market"
         )
-        markets = meta_response[0]["universe"]
         
-        # Get market states
+        # Get market states for prices
         state_response = await self._request(
             "POST",
             "info",
@@ -164,111 +135,85 @@ class HyperliquidService:
             rate_limit_key="market"
         )
         
-        # Combine metadata with states
-        result = []
-        for market in markets:
+        markets = []
+        for market in meta_response["universe"]:
             name = market["name"]
-            state = state_response.get(name)
-            if state:
-                result.append(MarketInfo(
-                    coin=name,
-                    price=Decimal(str(state)),
-                    index_price=Decimal(str(state)),  # Using same value since index price not available
-                    mark_price=Decimal(str(state)),   # Using same value since mark price not available
-                    open_interest=Decimal("0"),       # Not available in this response
-                    funding_rate=Decimal("0"),        # Not available in this response
-                    volume_24h=Decimal("0"),          # Not available in this response
-                    size_decimals=market.get("szDecimals", 0)
-                ))
-        return result
+            price = Decimal(str(state_response.get(name, "0")))
+            markets.append(MarketInfo(
+                coin=name,
+                price=price,
+                index_price=price,  # Using mid price as fallback
+                mark_price=price,   # Using mid price as fallback
+                open_interest=Decimal("0"),
+                funding_rate=Decimal("0"),
+                volume_24h=Decimal("0"),
+                size_decimals=market.get("szDecimals", 0)
+            ))
+        return markets
         
     async def get_market_summary(self, coin: str) -> MarketSummary:
-        """Get market summary.
-        
-        Args:
-            coin: Market symbol
-            
-        Returns:
-            Market summary
-        """
-        response = await self._request(
+        """Get market summary."""
+        # Get market state
+        state_response = await self._request(
             "POST",
             "info",
             data={"type": "allMids"},
             rate_limit_key="market"
         )
         
-        # Find market data for requested coin
-        price = response.get(coin)
-        if not price:
+        if coin not in state_response:
             raise ValueError(f"Market not found: {coin}")
             
-        # Get additional market data
+        price = Decimal(str(state_response[coin]))
+        
+        # Get market metadata
         meta_response = await self._request(
             "POST",
             "info",
-            data={"type": "metaAndAssetCtxs"},
+            data={"type": "meta"},
             rate_limit_key="market"
         )
         
-        # Find market metadata
-        market_meta = None
-        for market in meta_response[0]["universe"]:
-            if market["name"] == coin:
-                market_meta = market
-                break
-                
-        if not market_meta:
+        market_data = next((m for m in meta_response["universe"] if m["name"] == coin), None)
+        if not market_data:
             raise ValueError(f"Market metadata not found: {coin}")
             
-        # Create market summary
         return MarketSummary(
             coin=coin,
-            price=Decimal(str(price)),
-            index_price=Decimal(str(price)),  # Using same value since index price not available
-            mark_price=Decimal(str(price)),   # Using same value since mark price not available
-            open_interest=Decimal("0"),       # Not available in this response
-            funding_rate=Decimal("0"),        # Not available in this response
-            volume_24h=Decimal("0"),          # Not available in this response
-            size_decimals=market_meta.get("szDecimals", 0)
+            markPx=price,
+            oraclePx=price,  # Using mid price as oracle price
+            dayNtlVlm=Decimal("0"),  # Not available in this response
+            openInterest=Decimal("0"),  # Not available in this response
+            funding=Decimal("0")  # Not available in this response
         )
         
     async def get_orderbook(self, coin: str, depth: int = 100) -> OrderbookResponse:
-        """Get orderbook.
-        
-        Args:
-            coin: Market symbol
-            depth: Orderbook depth
-            
-        Returns:
-            Orderbook response
-        """
+        """Get orderbook."""
         response = await self._request(
             "POST",
             "info",
-            json={
+            data={
                 "type": "l2Book",
-                "coin": coin,
-                "depth": depth
+                "coin": coin
             },
-            rate_limit_type="market"
+            rate_limit_key="market"
         )
         
         return OrderbookResponse(
             coin=coin,
             bids=[
                 OrderbookLevel(
-                    price=Decimal(str(level.get("px", "0"))),
-                    size=Decimal(str(level.get("sz", "0")))
+                    price=Decimal(str(level["px"])),
+                    size=Decimal(str(level["sz"]))
                 )
-                for level in response.get("levels", [[]])[0]
+                for level in response.get("levels", [[]])[0][:depth]
             ],
             asks=[
                 OrderbookLevel(
-                    price=Decimal(str(level.get("px", "0"))),
-                    size=Decimal(str(level.get("sz", "0")))
+                    price=Decimal(str(level["px"])),
+                    size=Decimal(str(level["sz"]))
                 )
-                for level in response.get("levels", [[], []])[1]
+                for level in response.get("levels", [[], []])[1][:depth]
             ]
         )
         
@@ -277,36 +222,27 @@ class HyperliquidService:
         coin: str,
         limit: int = 100
     ) -> List[TradeInfo]:
-        """Get recent trades.
-        
-        Args:
-            coin: Market symbol
-            limit: Number of trades to return
-            
-        Returns:
-            List of trades
-        """
+        """Get recent trades."""
         response = await self._request(
             "POST",
             "info",
-            json={
+            data={
                 "type": "recentTrades",
-                "coin": coin,
-                "limit": limit
+                "coin": coin
             },
-            rate_limit_type="market"
+            rate_limit_key="market"
         )
         
         return [
             TradeInfo(
                 coin=coin,
-                id=str(trade.get("tid", "")),
-                price=Decimal(str(trade.get("px", "0"))),
-                size=Decimal(str(trade.get("sz", "0"))),
-                side=OrderSide.BUY if trade.get("side") == "B" else OrderSide.SELL,
-                timestamp=trade.get("time", 0)
+                id=str(trade["tid"]),
+                price=Decimal(str(trade["px"])),
+                size=Decimal(str(trade["sz"])),
+                side=OrderSide.BUY if trade["side"] == "B" else OrderSide.SELL,
+                timestamp=trade["time"]
             )
-            for trade in response
+            for trade in response[:limit]
         ]
         
     async def create_order(self, request: OrderRequest) -> OrderResult:

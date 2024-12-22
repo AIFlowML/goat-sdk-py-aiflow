@@ -1,6 +1,7 @@
 """ERC20 token plugin."""
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
@@ -8,6 +9,7 @@ from eth_account import Account
 from eth_account.signers.local import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError, TransactionNotFound
+from dotenv import load_dotenv
 
 from goat_sdk.core.plugin_base import PluginBase
 from goat_sdk.core.chain import Chain
@@ -30,8 +32,24 @@ from .compile_contract import compile_contract
 from .mode_config import ModeNetwork, get_mode_config
 from .tokens import Token, get_token_by_symbol, DEFAULT_TOKENS
 
+# Load environment variables
+load_dotenv()
+
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Environment variables with defaults
+MODE_PRIVATE_KEY = os.getenv("MODE_PRIVATE_KEY")
+MODE_PROVIDER_URL = os.getenv("MODE_PROVIDER_URL", "https://sepolia.mode.network")
+MODE_NETWORK = os.getenv("MODE_NETWORK", "testnet")
+MODE_GAS_LIMIT = int(os.getenv("MODE_GAS_LIMIT", "300000"))
+MODE_GAS_PRICE_BUFFER = float(os.getenv("MODE_GAS_PRICE_BUFFER", "1.2"))
+MODE_MAX_RETRIES = int(os.getenv("MODE_MAX_RETRIES", "3"))
+MODE_RETRY_DELAY = float(os.getenv("MODE_RETRY_DELAY", "1.0"))
+MODE_CONFIRMATION_BLOCKS = int(os.getenv("MODE_CONFIRMATION_BLOCKS", "1"))
+MODE_GAS_LIMIT_BUFFER = float(os.getenv("MODE_GAS_LIMIT_BUFFER", "1.2"))
+MODE_PRIORITY_FEE = int(os.getenv("MODE_PRIORITY_FEE", "1000000000"))
+MODE_TIMEOUT = float(os.getenv("MODE_TIMEOUT", "30.0"))
 
 
 class ERC20PluginCtorParams(BaseModel):

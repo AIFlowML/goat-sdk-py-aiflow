@@ -9,6 +9,7 @@ from goat_sdk.plugins.uniswap.types import (
     PoolInfo, SwapRoute, Position, PositionFees
 )
 from goat_sdk.plugins.uniswap.advanced_security import TokenSecurityChecker
+from goat_sdk.plugins.uniswap.uniswap_service import UniswapService
 
 # Fixtures
 @pytest.fixture
@@ -22,6 +23,28 @@ async def mock_web3():
 @pytest.fixture
 async def token_security_checker(mock_web3):
     return TokenSecurityChecker(web3=mock_web3)
+
+@pytest.fixture
+async def uniswap_service(mock_web3):
+    """Create a UniswapService instance for testing."""
+    config = {
+        "version": UniswapVersion.V3,
+        "router_address": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+        "factory_address": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+        "quoter_address": "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
+        "position_manager_address": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+        "default_slippage": Decimal("0.005"),
+        "default_deadline_minutes": 20,
+        "max_hops": 3,
+        "supported_fee_tiers": None
+    }
+    
+    # Create the config object first
+    config_obj = UniswapPluginConfig(**config)
+    
+    # Initialize service with proper parameters
+    service = await UniswapService.create(config=config_obj, web3=mock_web3)
+    return service
 
 # Uniswap Types Tests
 def test_uniswap_plugin_config_defaults():
@@ -94,6 +117,104 @@ def test_swap_route_initialization():
     assert route.path == ['0xTokenA', '0xTokenB']
     assert route.pools == ['0xPoolA', '0xPoolB']
     assert route.fees == [PoolFee.LOW, PoolFee.MEDIUM]
+
+# UniswapService Tests
+@pytest.mark.asyncio
+async def test_get_token_info(uniswap_service, mock_web3):
+    mock_web3.eth.contract.return_value.functions.name.return_value.call.return_value = 'Test Token'
+    mock_web3.eth.contract.return_value.functions.symbol.return_value.call.return_value = 'TEST'
+    mock_web3.eth.contract.return_value.functions.decimals.return_value.call.return_value = 18
+    
+    token_info = await uniswap_service.get_token_info('0x1234567890123456789012345678901234567890')
+    assert token_info.name == 'Test Token'
+    assert token_info.symbol == 'TEST'
+    assert token_info.decimals == 18
+
+@pytest.mark.asyncio
+async def test_get_pool_info_v3(uniswap_service, mock_web3):
+    # Mock pool data
+    pool_address = '0x3333333333333333333333333333333333333333'
+    mock_web3.eth.contract.return_value.functions.token0.return_value.call.return_value = '0x1111111111111111111111111111111111111111'
+    mock_web3.eth.contract.return_value.functions.token1.return_value.call.return_value = '0x2222222222222222222222222222222222222222'
+    mock_web3.eth.contract.return_value.functions.fee.return_value.call.return_value = 3000
+    mock_web3.eth.contract.return_value.functions.liquidity.return_value.call.return_value = 1000000
+    mock_web3.eth.contract.return_value.functions.slot0.return_value.call.return_value = [2**96, 0, 0, 0, 0, 0, 0]
+    
+    pool_info = await uniswap_service.get_pool_info_v3(pool_address)
+    
+    # Check token addresses
+    assert pool_info.token0.address == '0x1111111111111111111111111111111111111111'
+    assert pool_info.token1.address == '0x2222222222222222222222222222222222222222'
+    assert pool_info.fee == PoolFee.MEDIUM
+    assert pool_info.liquidity == 1000000
+
+@pytest.mark.asyncio
+async def test_find_optimal_routes(uniswap_service, mock_web3):
+    # Mock necessary contract calls
+    mock_web3.eth.contract.return_value.functions.factory.return_value.call.return_value = uniswap_service.config.factory_address
+    mock_web3.eth.contract.return_value.functions.pool.return_value.call.return_value = '0x4444444444444444444444444444444444444444'
+    mock_web3.eth.contract.return_value.functions.quote.return_value.call.return_value = [10**18, 0]
+    
+    routes = await uniswap_service.find_optimal_routes(
+        token_in='0x1111111111111111111111111111111111111111',
+        token_out='0x2222222222222222222222222222222222222222',
+        amount_in=Decimal('1.0')
+    )
+    assert len(routes) > 0
+    assert isinstance(routes[0], SwapRoute)
+    assert routes[0].input_amount == Decimal('1.0')
+    assert routes[0].output_amount > 0
+
+@pytest.mark.asyncio
+async def test_calculate_price_impact(uniswap_service, mock_web3):
+    # Mock pool data for price impact calculation
+    mock_web3.eth.contract.return_value.functions.slot0.return_value.call.return_value = [2**96, 0, 0, 0, 0, 0, 0]
+    mock_web3.eth.contract.return_value.functions.liquidity.return_value.call.return_value = 1000000
+    
+    price_impact = await uniswap_service.calculate_price_impact(
+        token_in='0x1111111111111111111111111111111111111111',
+        token_out='0x2222222222222222222222222222222222222222',
+        amount_in=Decimal('1.0')
+    )
+    assert isinstance(price_impact, Decimal)
+    assert price_impact >= 0
+
+@pytest.mark.asyncio
+async def test_simulate_swap(uniswap_service, mock_web3):
+    # Mock data
+    token_in = '0x1111111111111111111111111111111111111111'
+    token_out = '0x2222222222222222222222222222222222222222'
+    amount_in = Decimal('1.0')
+    
+    # Simulate swap
+    result = await uniswap_service.simulate_swap(token_in, token_out, amount_in)
+    
+    # Verify the swap route properties
+    assert isinstance(result, SwapRoute)
+    assert result.path == [token_in, token_out]
+    assert result.input_amount == amount_in
+    assert result.output_amount == Decimal('0.95')  # Based on mock data
+    assert result.price_impact == Decimal('0.05')
+
+@pytest.mark.asyncio
+async def test_monitor_mempool(uniswap_service, mock_web3):
+    # Mock pending transactions
+    mock_web3.eth.get_block.return_value = {
+        'transactions': [
+            '0x1111111111111111111111111111111111111111111111111111111111111111',
+            '0x2222222222222222222222222222222222222222222222222222222222222222'
+        ]
+    }
+    
+    # Monitor mempool
+    transactions = await uniswap_service.monitor_mempool()
+    
+    # Verify the transaction data structure
+    assert isinstance(transactions, dict)
+    assert 'swaps' in transactions
+    assert 'liquidity_changes' in transactions
+    assert isinstance(transactions['swaps'], list)
+    assert isinstance(transactions['liquidity_changes'], list)
 
 # Token Security Tests
 @pytest.mark.asyncio

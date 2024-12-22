@@ -1,7 +1,9 @@
 """Client for interacting with Tensor API."""
 
 from typing import Any, Dict, List, Optional
+import os
 import aiohttp
+from dotenv import load_dotenv
 
 from goat_sdk.core import ModeClientBase
 from goat_sdk.core.decorators.tool import tool
@@ -13,6 +15,20 @@ from goat_sdk.plugins.tensor.types import (
     GetBuyListingTransactionRequest,
 )
 from goat_sdk.plugins.tensor.utils.transaction import deserialize_tx_response_to_instructions
+
+# Load environment variables
+load_dotenv()
+
+# Environment variables with defaults
+TENSOR_API_KEY = os.getenv("TENSOR_API_KEY")
+TENSOR_API_URL = os.getenv("TENSOR_API_URL", "https://api.mainnet.tensordev.io/api/v1")
+TENSOR_WS_URL = os.getenv("TENSOR_WS_URL", "wss://api.tensor.trade/ws")
+TENSOR_MAX_RETRIES = int(os.getenv("TENSOR_MAX_RETRIES", "3"))
+TENSOR_RETRY_DELAY = float(os.getenv("TENSOR_RETRY_DELAY", "1.0"))
+TENSOR_TIMEOUT = float(os.getenv("TENSOR_TIMEOUT", "30.0"))
+TENSOR_COMPUTE_UNIT_PRICE = int(os.getenv("TENSOR_COMPUTE_UNIT_PRICE", "1000"))
+TENSOR_MAX_ACCOUNTS_PER_TX = int(os.getenv("TENSOR_MAX_ACCOUNTS_PER_TX", "64"))
+TENSOR_PREFER_POST_MINT = os.getenv("TENSOR_PREFER_POST_MINT", "true").lower() == "true"
 
 
 class TensorClient(ModeClientBase):
@@ -29,7 +45,7 @@ class TensorClient(ModeClientBase):
             config: Tensor configuration
             session: Optional aiohttp session
         """
-        self.config = config or TensorConfig(api_key="")
+        self.config = config or TensorConfig(api_key=TENSOR_API_KEY or "")
         self._session = session
         self._headers = {
             "Content-Type": "application/json",

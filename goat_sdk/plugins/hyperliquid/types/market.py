@@ -22,12 +22,14 @@ class MarketInfo(BaseModel):
 class MarketSummary(BaseModel):
     """Market summary information."""
     coin: str
-    price: Decimal
-    volume_24h: Decimal = Field(default=Decimal("0"))
-    open_interest: Decimal = Field(default=Decimal("0"))
-    funding_rate: Decimal = Field(default=Decimal("0"))
+    price: Decimal = Field(alias="markPx")
+    index_price: Decimal = Field(alias="oraclePx")
+    mark_price: Decimal = Field(alias="markPx")
+    volume_24h: Decimal = Field(alias="dayNtlVlm", default=Decimal("0"))
+    open_interest: Decimal = Field(alias="openInterest", default=Decimal("0"))
+    funding_rate: Decimal = Field(alias="funding", default=Decimal("0"))
     
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
 
 class OrderbookLevel(BaseModel):
     """Single level in orderbook."""
