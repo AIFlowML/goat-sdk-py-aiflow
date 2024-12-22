@@ -7,6 +7,7 @@ from unittest.mock import Mock, AsyncMock, MagicMock
 from decimal import Decimal
 from web3 import Web3
 from goat_sdk.core.config import GoatConfig
+import asyncio
 
 class MockProvider:
     """Base class for mock providers."""
@@ -160,6 +161,43 @@ def mock_mempool():
             return self.pending_transactions
 
     return MockMempool()
+
+@pytest.fixture(autouse=True)
+async def cleanup_after_test():
+    """Cleanup fixture that runs after each test."""
+    yield  # Let the test run
+    
+    try:
+        # Get the current event loop
+        loop = asyncio.get_running_loop()
+        
+        # Cancel all tasks except the current one
+        tasks = [t for t in asyncio.all_tasks(loop=loop) 
+                if t is not asyncio.current_task(loop=loop)]
+        
+        if tasks:
+            # Cancel all tasks
+            for task in tasks:
+                task.cancel()
+                
+            # Wait for all tasks to complete with a timeout
+            await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Wait a bit to ensure tasks are really done
+            await asyncio.sleep(0.1)
+    except RuntimeError:
+        # No running event loop - that's fine
+        pass
+
+@pytest.fixture(autouse=True)
+def reset_mocks(mock_provider, mock_web3, tx_tracker):
+    """Reset all mocks before each test."""
+    yield
+    mock_provider.calls = []
+    mock_provider.responses = {}
+    mock_web3.eth.reset_mock()
+    tx_tracker.transactions = []
+    tx_tracker.pending_nonce = 0
 
 def pytest_configure(config):
     """Configure pytest with custom markers."""

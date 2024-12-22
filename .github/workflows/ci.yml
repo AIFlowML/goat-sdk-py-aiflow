@@ -1,3 +1,23 @@
+# This workflow requires the following secrets to be set in the repository:
+#
+# Protocol Secrets:
+# - ETH_RPC_URL: Ethereum RPC URL
+# - ETH_PRIVATE_KEY: Ethereum wallet private key for testing
+# - SOLANA_RPC_URL: Solana RPC URL
+# - SOLANA_PRIVATE_KEY: Solana wallet private key for testing
+# - HYPERLIQUID_API_URL: Hyperliquid API URL
+# - HYPERLIQUID_PRIVATE_KEY: Hyperliquid private key for testing
+# - JUPITER_API_KEY: Jupiter API key
+# - TENSOR_API_KEY: Tensor API key
+# - UNISWAP_API_KEY: Uniswap API key
+# - NFT_API_KEY: NFT API key
+# - SPL_TOKEN_PROGRAM_ID: SPL Token program ID
+#
+# CI/CD Secrets:
+# - PYPI_API_TOKEN: PyPI API token for package publishing
+# - SNYK_TOKEN: Snyk token for security scanning
+# - GITHUB_TOKEN: Automatically provided by GitHub Actions
+
 name: CI/CD
 
 on:
@@ -8,7 +28,39 @@ on:
     branches: [ main ]
 
 jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        run: |
+          missing_secrets=()
+          
+          # Protocol Secrets
+          [ -z "${{ secrets.ETH_RPC_URL }}" ] && missing_secrets+=("ETH_RPC_URL")
+          [ -z "${{ secrets.ETH_PRIVATE_KEY }}" ] && missing_secrets+=("ETH_PRIVATE_KEY")
+          [ -z "${{ secrets.SOLANA_RPC_URL }}" ] && missing_secrets+=("SOLANA_RPC_URL")
+          [ -z "${{ secrets.SOLANA_PRIVATE_KEY }}" ] && missing_secrets+=("SOLANA_PRIVATE_KEY")
+          [ -z "${{ secrets.HYPERLIQUID_API_URL }}" ] && missing_secrets+=("HYPERLIQUID_API_URL")
+          [ -z "${{ secrets.HYPERLIQUID_PRIVATE_KEY }}" ] && missing_secrets+=("HYPERLIQUID_PRIVATE_KEY")
+          [ -z "${{ secrets.JUPITER_API_KEY }}" ] && missing_secrets+=("JUPITER_API_KEY")
+          [ -z "${{ secrets.TENSOR_API_KEY }}" ] && missing_secrets+=("TENSOR_API_KEY")
+          [ -z "${{ secrets.UNISWAP_API_KEY }}" ] && missing_secrets+=("UNISWAP_API_KEY")
+          [ -z "${{ secrets.NFT_API_KEY }}" ] && missing_secrets+=("NFT_API_KEY")
+          [ -z "${{ secrets.SPL_TOKEN_PROGRAM_ID }}" ] && missing_secrets+=("SPL_TOKEN_PROGRAM_ID")
+          
+          # CI/CD Secrets
+          [ -z "${{ secrets.PYPI_API_TOKEN }}" ] && missing_secrets+=("PYPI_API_TOKEN")
+          [ -z "${{ secrets.SNYK_TOKEN }}" ] && missing_secrets+=("SNYK_TOKEN")
+          
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "The following required secrets are missing:"
+            printf '%s\n' "${missing_secrets[@]}"
+            exit 1
+          fi
+          echo "All required secrets are present"
+
   test:
+    needs: check-secrets
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,9 +82,32 @@ jobs:
     
     - name: Run tests
       env:
+        # Ethereum/EVM
         ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+        ETH_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        
+        # Solana
         SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
-        TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        SOLANA_PRIVATE_KEY: ${{ secrets.SOLANA_PRIVATE_KEY }}
+        
+        # Hyperliquid
+        HYPERLIQUID_API_URL: ${{ secrets.HYPERLIQUID_API_URL }}
+        HYPERLIQUID_PRIVATE_KEY: ${{ secrets.HYPERLIQUID_PRIVATE_KEY }}
+        
+        # Jupiter
+        JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+        
+        # Tensor
+        TENSOR_API_KEY: ${{ secrets.TENSOR_API_KEY }}
+        
+        # Uniswap
+        UNISWAP_API_KEY: ${{ secrets.UNISWAP_API_KEY }}
+        
+        # NFT
+        NFT_API_KEY: ${{ secrets.NFT_API_KEY }}
+        
+        # SPL Token
+        SPL_TOKEN_PROGRAM_ID: ${{ secrets.SPL_TOKEN_PROGRAM_ID }}
       run: |
         pytest tests/ --cov=goat_sdk --cov-report=xml -v
     

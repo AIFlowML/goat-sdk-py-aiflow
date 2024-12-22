@@ -38,19 +38,19 @@ class HyperliquidPlugin:
             session: Optional aiohttp session
             logger: Optional logger
         """
-        if config:
-            self.api_key = config.api_key
-            self.api_secret = config.api_secret
-            self.testnet = config.testnet
-            self.use_ssl = config.use_ssl
-            self.ssl_verify = config.ssl_verify
-        else:
-            self.api_key = api_key
-            self.api_secret = api_secret
-            self.testnet = testnet
-            self.use_ssl = True
-            self.ssl_verify = True
+        # Initialize config from environment variables if not provided
+        if config is None:
+            config = HyperliquidConfig()
             
+        # Override config with explicit parameters if provided
+        if api_key is not None:
+            config.api_key = api_key
+        if api_secret is not None:
+            config.api_secret = api_secret
+        if testnet:
+            config.testnet = testnet
+
+        self.config = config
         self.session = session
         self.logger = logger or logging.getLogger(__name__)
         
@@ -67,13 +67,13 @@ class HyperliquidPlugin:
         """
         if testnet not in self._services:
             self._services[testnet] = HyperliquidService(
-                api_key=self.api_key,
-                api_secret=self.api_secret,
+                api_key=self.config.api_key,
+                api_secret=self.config.api_secret,
                 testnet=testnet,
                 session=self.session,
                 logger=self.logger,
-                use_ssl=self.use_ssl,
-                ssl_verify=self.ssl_verify
+                use_ssl=self.config.use_ssl,
+                ssl_verify=self.config.ssl_verify
             )
         return self._services[testnet]
         

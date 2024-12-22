@@ -1,25 +1,34 @@
 """
 Core configuration management for GOAT SDK.
 """
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic import Field, validator, ConfigDict
 import os
 from decimal import Decimal
+
 
 class NetworkConfig(BaseSettings):
     rpc_url: str
     chain_id: int
     private_key: str
 
-    class Config:
-        env_file = '.env'
+    model_config = ConfigDict(
+        extra='allow',
+        env_file='.env'
+    )
+
 
 class GoatConfig(BaseSettings):
     """
     Main configuration class for GOAT SDK.
     Handles all environment variables and provides validation.
     """
+    model_config = ConfigDict(
+        extra='allow',
+        env_file='.env'
+    )
+
     # Network Configurations
     eth_network: str = Field("mainnet", env='ETH_NETWORK', description="Ethereum network to connect to")
     eth_rpc_url: str = Field(..., env='ETH_RPC_URL', description="Ethereum RPC URL")
@@ -58,13 +67,6 @@ class GoatConfig(BaseSettings):
     # Development Settings
     debug_mode: bool = Field(False, env='DEBUG_MODE')
     test_mode: bool = Field(False, env='TEST_MODE')
-
-    class Config:
-        """Pydantic config."""
-        env_prefix = "GOAT_"
-        case_sensitive = False
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
 
     @validator('eth_private_key', 'mode_private_key')
     def validate_private_key(cls, v: Optional[str]) -> Optional[str]:

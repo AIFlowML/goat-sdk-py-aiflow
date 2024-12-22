@@ -1,73 +1,43 @@
-"""Langchain tool implementation for GOAT SDK."""
+"""Example script showing how to use GOAT SDK tools with Langchain."""
 
+import json
 from typing import Dict, Any
-from langchain.tools import BaseTool
+from langchain.tools import Tool
 from goat_sdk.core.classes.tool_base import ToolBase
 
-class GoatTool(BaseTool):
-    """Langchain tool wrapper for GOAT SDK tools.
+
+def create_langchain_tool(tool: ToolBase) -> Tool:
+    """Create a Langchain tool from a GOAT SDK tool.
     
-    This class wraps a GOAT SDK tool as a Langchain tool, making it compatible
-    with Langchain's agent framework. It handles parameter validation and
-    async execution.
-
-    Args:
-        tool (ToolBase): The GOAT SDK tool to wrap
-
     Example:
         ```python
         goat_tool = ToolBase(name="my_tool", description="A tool")
-        langchain_tool = GoatTool(goat_tool)
+        langchain_tool = create_langchain_tool(goat_tool)
         ```
     """
-    
-    def __init__(self, tool: ToolBase):
-        """Initialize the tool.
-        
-        Args:
-            tool: The GOAT SDK tool to wrap
-        """
-        self.tool = tool
-        super().__init__(
-            name=tool.name,
-            description=tool.description,
-            func=self._execute,
-            args_schema=tool.parameters
-        )
-    
-    async def _execute(self, **kwargs: Dict[str, Any]) -> str:
-        """Execute the tool with the given parameters.
-        
-        Args:
-            **kwargs: Tool parameters as keyword arguments
-            
-        Returns:
-            Tool execution result as a string
-            
-        Raises:
-            Exception: If tool execution fails
-        """
+    async def _execute(tool_input: str) -> str:
+        """Execute the wrapped tool."""
         try:
-            result = await self.tool.execute(kwargs)
+            # Parse JSON input
+            kwargs = json.loads(tool_input)
+            result = await tool.execute(kwargs)
             return str(result)
+        except json.JSONDecodeError:
+            raise ValueError("Tool input must be a valid JSON string")
         except Exception as e:
             raise ValueError(f"Tool execution failed: {str(e)}")
             
-    def _run(self, *args: Any, **kwargs: Any) -> str:
-        """Synchronous execution method required by Langchain.
-        
-        This method raises an error as all GOAT SDK tools are async.
-        """
+    def _run(tool_input: str) -> str:
+        """Sync execution is not supported."""
         raise NotImplementedError("GOAT SDK tools only support async execution")
         
-    async def _arun(self, *args: Any, **kwargs: Any) -> str:
-        """Async execution method for Langchain.
-        
-        Args:
-            *args: Positional arguments (not used)
-            **kwargs: Tool parameters
-            
-        Returns:
-            Tool execution result
-        """
-        return await self._execute(**kwargs)
+    async def _arun(tool_input: str) -> str:
+        """Run the tool asynchronously."""
+        return await _execute(tool_input)
+    
+    return Tool(
+        name=tool.name,
+        description=tool.description,
+        func=_run,
+        coroutine=_arun
+    )

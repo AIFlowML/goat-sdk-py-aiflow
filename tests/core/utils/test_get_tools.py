@@ -1,60 +1,79 @@
 """Tests for get_tools utility."""
 
-from typing import Dict, Any
+import pytest
+import logging
 from pydantic import BaseModel
-from goat_sdk.core.decorators import Tool
+
+from goat_sdk.core.decorators.tool import Tool
 from goat_sdk.core.utils.get_tools import get_tools
+
+logger = logging.getLogger(__name__)
 
 
 class TestParams(BaseModel):
-    """Test parameter model."""
-    name: str
+    """Test parameters model."""
+    value: str
 
 
 class ToolTestClass:
     """Test class with tools."""
-
+    
     @Tool(description="Test tool")
-    def test_tool(self, params: TestParams) -> Dict[str, Any]:
+    async def test_tool(self, params: TestParams) -> str:
         """Test tool method."""
-        return {"name": params.name}
-
+        logger.debug(f"Executing test_tool with params: {params}")
+        return f"test_{params.value}"
+    
     @Tool(description="Another test tool")
-    def another_tool(self, params: TestParams) -> Dict[str, Any]:
+    async def another_test_tool(self, params: TestParams) -> str:
         """Another test tool method."""
-        return {"name": params.name}
-
-    def not_a_tool(self) -> None:
+        logger.debug(f"Executing another_test_tool with params: {params}")
+        return f"another_{params.value}"
+    
+    def not_a_tool(self) -> str:
         """Not a tool method."""
-        pass
-
-    @Tool(description="Private tool")
-    def _private_tool(self, params: TestParams) -> Dict[str, Any]:
-        """Private tool method."""
-        return {"name": params.name}
+        logger.debug("Executing not_a_tool method")
+        return "not_a_tool"
 
 
 def test_get_tools():
-    """Test getting tools from a class."""
-    tools = get_tools(ToolTestClass)
+    """Test get_tools function."""
+    logger.info("Testing get_tools function")
+    
+    logger.debug("Creating test class instance")
+    test_class = ToolTestClass()
+    
+    logger.debug("Getting tools from test class")
+    tools = get_tools(test_class)
+    
+    logger.debug(f"Found {len(tools)} tools")
     assert len(tools) == 2
-    assert any(t["name"] == "test_tool" for t in tools)
-    assert any(t["name"] == "another_tool" for t in tools)
-    assert not any(t["name"] == "_private_tool" for t in tools)
-
-
-def test_get_tools_with_private():
-    """Test getting tools including private methods."""
-    tools = get_tools(ToolTestClass, include_private=True)
-    assert len(tools) == 3
-    assert any(t["name"] == "_private_tool" for t in tools)
-
-
-def test_tool_metadata():
-    """Test tool metadata structure."""
-    tools = get_tools(ToolTestClass)
-    tool = next(t for t in tools if t["name"] == "test_tool")
-    assert "description" in tool
-    assert "parameters" in tool
-    assert tool["parameters"]["type"] == "object"
-    assert "name" in tool["parameters"]["properties"]
+    
+    tool_names = [tool["name"] for tool in tools]
+    logger.debug(f"Tool names: {tool_names}")
+    
+    # Verify tool names
+    logger.debug("Verifying tool names")
+    assert "test_tool" in tool_names
+    assert "another_test_tool" in tool_names
+    assert "not_a_tool" not in tool_names
+    logger.debug("Tool names verified")
+    
+    # Test tool metadata
+    logger.debug("Testing tool metadata")
+    
+    # Verify test_tool
+    logger.debug("Verifying test_tool metadata")
+    test_tool = next(tool for tool in tools if tool["name"] == "test_tool")
+    assert test_tool["description"] == "Test tool"
+    assert "parameters" in test_tool
+    logger.debug(f"test_tool metadata verified: {test_tool}")
+    
+    # Verify another_test_tool
+    logger.debug("Verifying another_test_tool metadata")
+    another_test_tool = next(tool for tool in tools if tool["name"] == "another_test_tool")
+    assert another_test_tool["description"] == "Another test tool"
+    assert "parameters" in another_test_tool
+    logger.debug(f"another_test_tool metadata verified: {another_test_tool}")
+    
+    logger.info("get_tools test completed successfully")

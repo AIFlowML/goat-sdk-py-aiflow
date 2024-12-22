@@ -37,7 +37,7 @@ Example:
     ```
 """
 
-from .tool import GoatTool
 from .adapter import get_on_chain_tools
+from .tool import create_langchain_tool
 
-__all__ = ["GoatTool", "get_on_chain_tools"]
+__all__ = ["get_on_chain_tools", "create_langchain_tool"]

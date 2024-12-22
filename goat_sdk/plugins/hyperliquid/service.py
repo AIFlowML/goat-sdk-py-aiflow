@@ -3,11 +3,13 @@
 import logging
 import time
 import ssl
+import os
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 import aiohttp
 import backoff
+from dotenv import load_dotenv
 
 from .errors import RequestError
 from .utils import RateLimiter
@@ -19,6 +21,9 @@ from .types.market import (
     MarketInfo, MarketSummary, OrderbookResponse, OrderbookLevel,
     TradeInfo
 )
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +55,13 @@ class HyperliquidService:
         self.api_secret = api_secret
         self.testnet = testnet
         
-        self.base_url = "https://api.hyperliquid-testnet.xyz" if testnet else "https://api.hyperliquid.xyz"
-        self.ws_url = "wss://api.hyperliquid-testnet.xyz/ws" if testnet else "wss://api.hyperliquid.xyz/ws"
+        # Use environment variables for URLs with fallbacks
+        if testnet:
+            self.base_url = os.getenv("HYPERLIQUID_TESTNET_URL", "https://api.hyperliquid-testnet.xyz")
+            self.ws_url = os.getenv("HYPERLIQUID_WS_TESTNET_URL", "wss://api.hyperliquid-testnet.xyz/ws")
+        else:
+            self.base_url = os.getenv("HYPERLIQUID_MAINNET_URL", "https://api.hyperliquid.xyz")
+            self.ws_url = os.getenv("HYPERLIQUID_WS_MAINNET_URL", "wss://api.hyperliquid.xyz/ws")
         
         # Create SSL context based on settings
         if use_ssl:
@@ -73,28 +83,26 @@ class HyperliquidService:
             "order": RateLimiter(max_rate=5, time_period=1),     # 5 orders per second
             "market": RateLimiter(max_rate=2, time_period=1)     # 2 market data requests per second
         }
-    
+        
     async def close(self):
         """Close service connections."""
-        if self.session and not self.session.closed:
+        if self.session:
             await self.session.close()
             
     async def _request(
         self,
         method: str,
         endpoint: str,
-        auth_required: bool = False,
-        rate_limit_type: str = "default",
-        **kwargs
-    ) -> Any:
-        """Make an HTTP request with retries and rate limiting.
+        data: Optional[Dict[str, Any]] = None,
+        rate_limit_key: str = "default"
+    ) -> Dict[str, Any]:
+        """Make HTTP request to API.
         
         Args:
             method: HTTP method
             endpoint: API endpoint
-            auth_required: Whether authentication is required
-            rate_limit_type: Rate limit type for this request
-            **kwargs: Additional request arguments
+            data: Request data
+            rate_limit_key: Rate limit key
             
         Returns:
             Response data
@@ -104,21 +112,23 @@ class HyperliquidService:
         """
         try:
             # Apply rate limiting
-            await self.rate_limiters[rate_limit_type].acquire()
+            await self.rate_limiters[rate_limit_key].acquire()
             
             # Build URL
             url = f"{self.base_url}/{endpoint}"
             
-            # Handle auth if required
-            if auth_required and self.api_key:
-                if "headers" not in kwargs:
-                    kwargs["headers"] = {}
-                kwargs["headers"]["Authorization"] = f"Bearer {self.api_key}"
+            # Add auth headers if available
+            headers = {}
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
             
-            # Remove auth_required from kwargs since aiohttp doesn't accept it
-            kwargs.pop("auth_required", None)
-            
-            async with self.session.request(method, url, **kwargs) as response:
+            # Make request
+            async with self.session.request(
+                method,
+                url,
+                json=data,
+                headers=headers
+            ) as response:
                 if response.status >= 400:
                     error_text = await response.text()
                     raise RequestError(
@@ -141,8 +151,8 @@ class HyperliquidService:
         meta_response = await self._request(
             "POST",
             "info",
-            json={"type": "metaAndAssetCtxs"},
-            rate_limit_type="market"
+            data={"type": "metaAndAssetCtxs"},
+            rate_limit_key="market"
         )
         markets = meta_response[0]["universe"]
         
@@ -150,8 +160,8 @@ class HyperliquidService:
         state_response = await self._request(
             "POST",
             "info",
-            json={"type": "allMids"},
-            rate_limit_type="market"
+            data={"type": "allMids"},
+            rate_limit_key="market"
         )
         
         # Combine metadata with states
@@ -184,8 +194,8 @@ class HyperliquidService:
         response = await self._request(
             "POST",
             "info",
-            json={"type": "allMids"},
-            rate_limit_type="market"
+            data={"type": "allMids"},
+            rate_limit_key="market"
         )
         
         # Find market data for requested coin
@@ -193,12 +203,34 @@ class HyperliquidService:
         if not price:
             raise ValueError(f"Market not found: {coin}")
             
+        # Get additional market data
+        meta_response = await self._request(
+            "POST",
+            "info",
+            data={"type": "metaAndAssetCtxs"},
+            rate_limit_key="market"
+        )
+        
+        # Find market metadata
+        market_meta = None
+        for market in meta_response[0]["universe"]:
+            if market["name"] == coin:
+                market_meta = market
+                break
+                
+        if not market_meta:
+            raise ValueError(f"Market metadata not found: {coin}")
+            
+        # Create market summary
         return MarketSummary(
             coin=coin,
             price=Decimal(str(price)),
-            volume_24h=Decimal("0"),  # Not available in this response
-            open_interest=Decimal("0"), # Not available in this response
-            funding_rate=Decimal("0")   # Not available in this response
+            index_price=Decimal(str(price)),  # Using same value since index price not available
+            mark_price=Decimal(str(price)),   # Using same value since mark price not available
+            open_interest=Decimal("0"),       # Not available in this response
+            funding_rate=Decimal("0"),        # Not available in this response
+            volume_24h=Decimal("0"),          # Not available in this response
+            size_decimals=market_meta.get("szDecimals", 0)
         )
         
     async def get_orderbook(self, coin: str, depth: int = 100) -> OrderbookResponse:

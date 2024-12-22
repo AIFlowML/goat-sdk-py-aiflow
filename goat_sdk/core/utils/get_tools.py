@@ -1,34 +1,24 @@
-"""Utility function to get tools from plugins."""
-
-from typing import List, TypeVar, Any
-from goat_sdk.core.classes.wallet_client_base import WalletClientBase
+"""Utility for getting tool instances from a class."""
+from typing import List, Any, Dict
+from inspect import getmembers, ismethod
 from goat_sdk.core.classes.tool_base import ToolBase
 
-TWalletClient = TypeVar('TWalletClient', bound=WalletClientBase)
 
-async def get_tools(
-    wallet: TWalletClient,
-    plugins: List[Any]
-) -> List[ToolBase]:
-    """Get tools from plugins.
-    
-    This function collects tools from all provided plugins.
-    Each plugin's get_tools method is called with the wallet client.
+def get_tools(instance: Any) -> List[Dict[str, Any]]:
+    """Get all tool instances from a class instance.
     
     Args:
-        wallet: Wallet client instance for blockchain interactions
-        plugins: List of plugin instances
+        instance: Class instance to get tools from
         
     Returns:
-        List of tools from all plugins
-        
-    Example:
-        ```python
-        tools = await get_tools(wallet=sdk, plugins=[erc20_plugin])
-        ```
+        List of tool dictionaries with name, description, and parameters
     """
-    tools: List[ToolBase] = []
-    for plugin in plugins:
-        plugin_tools = await plugin.get_tools()
-        tools.extend(plugin_tools)
+    tools = []
+    
+    # Get all methods that are marked as tools
+    for name, method in getmembers(instance, predicate=ismethod):
+        if hasattr(method, '__tool__'):
+            tool_metadata = method.__tool__
+            tools.append(tool_metadata)
+    
     return tools

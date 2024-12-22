@@ -3,67 +3,72 @@ import re
 from typing import Any, Dict, Optional
 
 
-def to_snake_case(text: str) -> str:
-    """Convert a string to snake case.
+def to_snake_case(s: str) -> str:
+    """Convert a string to snake case."""
+    # Replace hyphens and dots with underscores
+    s = s.replace('-', '_').replace('.', '_')
+    
+    # Insert underscore between camelCase
+    s = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s)
+    
+    # Convert to lowercase and normalize multiple underscores
+    return re.sub(r'_+', '_', s.lower())
+
+
+def from_snake_case(s: str, separator: str = '') -> str:
+    """Convert a snake case string to camelCase, preserving leading underscores.
     
     Args:
-        text: String to convert
-        
-    Returns:
-        Snake case version of the string
+        s: String to convert
+        separator: Optional separator for words (default: '')
     """
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-
-
-def from_snake_case(text: str) -> str:
-    """Convert a string from snake case to camel case.
+    # Count and preserve leading underscores
+    leading_underscores = ''
+    for char in s:
+        if char == '_':
+            leading_underscores += '_'
+        else:
+            break
+            
+    # Remove leading/trailing underscores for processing
+    s = s.strip('_')
     
-    Args:
-        text: String to convert
-        
-    Returns:
-        Camel case version of the string
-    """
-    components = text.split('_')
-    return components[0] + ''.join(x.title() for x in components[1:])
-
-
-def to_camel_case(text: str) -> str:
-    """Convert a string to camel case.
+    # Split into parts
+    parts = s.split('_')
     
-    Args:
-        text: String to convert
-        
-    Returns:
-        Camel case version of the string
-    """
-    components = text.split('_')
-    return ''.join(x.title() for x in components)
+    if separator:
+        # If separator provided, join with separator
+        return leading_underscores + separator.join(parts)
+    else:
+        # Convert to camelCase
+        return leading_underscores + parts[0] + ''.join(p.title() for p in parts[1:])
 
 
-def to_pascal_case(text: str) -> str:
-    """Convert a string to pascal case.
+def to_camel_case(s: str) -> str:
+    """Convert a string to camelCase."""
+    # First convert to snake case to normalize
+    s = to_snake_case(s)
     
-    Args:
-        text: String to convert
-        
-    Returns:
-        Pascal case version of the string
-    """
-    return ''.join(word.capitalize() for word in text.split('_'))
+    # Then convert to camelCase
+    return from_snake_case(s)
 
 
-def to_kebab_case(text: str) -> str:
-    """Convert a string to kebab case.
+def to_pascal_case(s: str) -> str:
+    """Convert a string to PascalCase."""
+    # First convert to camelCase
+    s = to_camel_case(s)
     
-    Args:
-        text: String to convert
-        
-    Returns:
-        Kebab case version of the string
-    """
-    return to_snake_case(text).replace('_', '-')
+    # Then capitalize first letter
+    return s[0].upper() + s[1:] if s else s
+
+
+def to_kebab_case(s: str) -> str:
+    """Convert a string to kebab-case."""
+    # First convert to snake case
+    s = to_snake_case(s)
+    
+    # Then replace underscores with hyphens
+    return s.replace('_', '-')
 
 
 def snake_case_dict(d: Dict[str, Any]) -> Dict[str, Any]:

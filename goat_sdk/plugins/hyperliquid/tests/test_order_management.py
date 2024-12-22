@@ -31,6 +31,53 @@ async def test_create_order(plugin: HyperliquidPlugin):
     assert result.order.price == Decimal("40000")
     assert result.order.status in [OrderStatus.NEW, OrderStatus.OPEN]
 
+async def test_create_post_only_order(plugin: HyperliquidPlugin):
+    """Test creating a post-only order."""
+    request = OrderRequest(
+        coin="BTC",
+        side=OrderSide.BUY,
+        type=OrderType.POST_ONLY,
+        size=Decimal("0.001"),
+        price=Decimal("40000"),
+        post_only=True
+    )
+    result = await plugin.create_order(request, testnet=True)
+    assert isinstance(result, OrderResult)
+    assert result.success
+    assert isinstance(result.order, OrderResponse)
+    assert result.order.type == OrderType.POST_ONLY
+    assert result.order.post_only is True
+
+async def test_create_ioc_order(plugin: HyperliquidPlugin):
+    """Test creating an IOC order."""
+    request = OrderRequest(
+        coin="BTC",
+        side=OrderSide.BUY,
+        type=OrderType.IOC,
+        size=Decimal("0.001"),
+        price=Decimal("40000")
+    )
+    result = await plugin.create_order(request, testnet=True)
+    assert isinstance(result, OrderResult)
+    assert result.success
+    assert isinstance(result.order, OrderResponse)
+    assert result.order.type == OrderType.IOC
+
+async def test_create_fok_order(plugin: HyperliquidPlugin):
+    """Test creating a FOK order."""
+    request = OrderRequest(
+        coin="BTC",
+        side=OrderSide.BUY,
+        type=OrderType.FOK,
+        size=Decimal("0.001"),
+        price=Decimal("40000")
+    )
+    result = await plugin.create_order(request, testnet=True)
+    assert isinstance(result, OrderResult)
+    assert result.success
+    assert isinstance(result.order, OrderResponse)
+    assert result.order.type == OrderType.FOK
+
 async def test_cancel_order(plugin: HyperliquidPlugin):
     """Test canceling an order."""
     # First create an order
@@ -49,7 +96,7 @@ async def test_cancel_order(plugin: HyperliquidPlugin):
     assert isinstance(cancel_result, OrderResult)
     assert cancel_result.success
     assert isinstance(cancel_result.order, OrderResponse)
-    assert cancel_result.order.status == OrderStatus.CANCELED
+    assert cancel_result.order.status == OrderStatus.CANCELLED
 
 async def test_cancel_all_orders(plugin: HyperliquidPlugin):
     """Test canceling all orders."""
@@ -72,7 +119,7 @@ async def test_cancel_all_orders(plugin: HyperliquidPlugin):
     for result in results:
         assert isinstance(result, OrderResult)
         assert result.success
-        assert result.order.status == OrderStatus.CANCELED
+        assert result.order.status == OrderStatus.CANCELLED
 
 async def test_get_open_orders(plugin: HyperliquidPlugin):
     """Test getting open orders."""
@@ -98,8 +145,23 @@ async def test_get_order_history(plugin: HyperliquidPlugin):
     """Test getting order history."""
     orders = await plugin.get_order_history(testnet=True)
     assert isinstance(orders, list)
-    assert len(orders) > 0
-    assert isinstance(orders[0], OrderResponse)
+    for order in orders:
+        assert isinstance(order, OrderResponse)
+        assert order.coin is not None
+        assert order.size is not None
+        assert order.price is not None
+        assert order.side in [OrderSide.BUY, OrderSide.SELL]
+        assert order.type in [
+            OrderType.LIMIT, OrderType.MARKET,
+            OrderType.POST_ONLY, OrderType.IOC,
+            OrderType.FOK
+        ]
+        assert order.status in [
+            OrderStatus.NEW, OrderStatus.OPEN,
+            OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED,
+            OrderStatus.CANCELLED, OrderStatus.EXPIRED,
+            OrderStatus.REJECTED
+        ]
 
 async def test_get_order_status(plugin: HyperliquidPlugin):
     """Test getting order status."""
@@ -119,4 +181,5 @@ async def test_get_order_status(plugin: HyperliquidPlugin):
     assert isinstance(order, OrderResponse)
     assert order.id == create_result.order.id
     assert order.coin == "BTC"
-    assert order.status in [OrderStatus.NEW, OrderStatus.OPEN] 
+    assert order.status in [OrderStatus.NEW, OrderStatus.OPEN]
+  

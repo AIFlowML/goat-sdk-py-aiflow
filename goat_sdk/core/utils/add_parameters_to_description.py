@@ -1,19 +1,38 @@
-"""Utility for adding parameters to tool descriptions."""
-from typing import Dict, Any
+"""Utility for adding parameter descriptions to function docstrings."""
+from typing import Dict, Any, Optional
 
 
-def add_parameters_to_description(description: str, parameters: Dict[str, Any]) -> str:
-    """Add parameters to a tool description.
+def add_parameters_to_description(description: str, parameters: Optional[Dict[str, Any]] = None) -> str:
+    """Add parameter descriptions to a function description.
     
     Args:
-        description: The base description
-        parameters: Dictionary of parameters and their values
+        description: Base function description
+        parameters: Parameter schema dictionary
         
     Returns:
-        Description with parameters appended
+        Description with added parameter information
     """
-    if not parameters:
+    if parameters is None:
         return description
-
-    param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
-    return f"{description} (Parameters: {param_str})"
+        
+    if not parameters.get('properties'):
+        return description + "\n\nParameters:"
+        
+    result = [description, "\nParameters:"]
+    
+    properties = parameters.get('properties', {})
+    required = parameters.get('required', [])
+    
+    for name, schema in sorted(properties.items()):
+        param_desc = schema.get('description', 'No description')
+        param_type = schema.get('type', 'any')
+        is_required = name in required
+        
+        param_line = f"{name}"
+        if is_required:
+            param_line += " (required)"
+        param_line += f": {param_desc} (type: {param_type})"
+        
+        result.append(param_line)
+        
+    return "\n".join(result)

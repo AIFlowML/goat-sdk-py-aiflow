@@ -1,8 +1,12 @@
 """Configuration for Hyperliquid plugin."""
 
+import os
 from typing import Optional
 from pydantic import BaseModel, Field, HttpUrl
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
 class HyperliquidConfig(BaseModel):
     """Configuration for Hyperliquid plugin."""
@@ -15,29 +19,29 @@ class HyperliquidConfig(BaseModel):
 
     # API URLs
     api_url: HttpUrl = Field(
-        default="https://api.hyperliquid.xyz",
+        default=os.getenv("HYPERLIQUID_MAINNET_URL", "https://api.hyperliquid.xyz"),
         description="Base URL for Hyperliquid API"
     )
     testnet_api_url: HttpUrl = Field(
-        default="https://api.hyperliquid-testnet.xyz",
+        default=os.getenv("HYPERLIQUID_TESTNET_URL", "https://api.hyperliquid-testnet.xyz"),
         description="Base URL for Hyperliquid testnet API"
     )
     ws_url: HttpUrl = Field(
-        default="wss://api.hyperliquid.xyz/ws",
+        default=os.getenv("HYPERLIQUID_WS_MAINNET_URL", "wss://api.hyperliquid.xyz/ws"),
         description="WebSocket URL for Hyperliquid API"
     )
     testnet_ws_url: HttpUrl = Field(
-        default="wss://api.hyperliquid-testnet.xyz/ws",
+        default=os.getenv("HYPERLIQUID_WS_TESTNET_URL", "wss://api.hyperliquid-testnet.xyz/ws"),
         description="WebSocket URL for Hyperliquid testnet API"
     )
 
     # Authentication
     api_key: Optional[str] = Field(
-        default=None,
+        default_factory=lambda: os.getenv("HYPERLIQUID_API_KEY"),
         description="API key for authentication"
     )
     api_secret: Optional[str] = Field(
-        default=None,
+        default_factory=lambda: os.getenv("HYPERLIQUID_API_SECRET"),
         description="API secret for authentication"
     )
 

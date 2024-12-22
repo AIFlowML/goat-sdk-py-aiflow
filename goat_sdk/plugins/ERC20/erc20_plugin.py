@@ -1,5 +1,6 @@
 """ERC20 token plugin."""
 import json
+import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
@@ -29,6 +30,9 @@ from .compile_contract import compile_contract
 from .mode_config import ModeNetwork, get_mode_config
 from .tokens import Token, get_token_by_symbol, DEFAULT_TOKENS
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
 
 class ERC20PluginCtorParams(BaseModel):
     """Parameters for constructing an ERC20Plugin."""
@@ -56,11 +60,14 @@ class ERC20Plugin(PluginBase):
     def __init__(self, params: ERC20PluginCtorParams):
         """Initialize the plugin."""
         super().__init__(name="erc20", tools=[self])
+        logger.info("Initializing ERC20Plugin")
         self.w3 = Web3(Web3.HTTPProvider(params.provider_url))
         self.account = Account.from_key(params.private_key)
         self.network = params.network
         self.mode_config = get_mode_config(params.network)
         self.tokens = params.tokens or DEFAULT_TOKENS
+        logger.debug(f"Connected to network: {self.network.value}")
+        logger.debug(f"Account address: {self.account.address}")
 
         # Load contract ABI and bytecode
         build_dir = Path(__file__).parent / "build"
@@ -69,8 +76,10 @@ class ERC20Plugin(PluginBase):
                 self.abi = json.load(f)
             with open(build_dir / "TestToken.bin", "r", encoding="utf-8") as f:
                 self.bytecode = f.read()
+            logger.debug("Loaded contract ABI and bytecode from files")
         except FileNotFoundError:
             # Compile contract if ABI and bytecode files don't exist
+            logger.info("Contract files not found, compiling contract")
             self.abi, self.bytecode = compile_contract()
 
         # Get chain ID
@@ -80,6 +89,7 @@ class ERC20Plugin(PluginBase):
             # For local testing, we'll allow non-Mode networks
             if chain_id not in [1337]:  # Ganache chain ID
                 raise ValueError(f"Chain {chain_id} is not supported")
+        logger.info(f"Successfully initialized ERC20Plugin on chain {chain_id}")
 
     def supports_chain(self) -> bool:
         """Check if the current chain is supported.
@@ -177,96 +187,133 @@ class ERC20Plugin(PluginBase):
 
     async def get_token_info(self, params: GetTokenInfoParams) -> TokenInfoResult:
         """Get information about a token."""
+        logger.info(f"Getting token info for address: {params.token_address}")
         self._validate_mode_network()
         contract = self.w3.eth.contract(address=params.token_address, abi=self.abi)
 
-        # Get token info
-        name = contract.functions.name().call()
-        symbol = contract.functions.symbol().call()
-        decimals = contract.functions.decimals().call()
-        total_supply = contract.functions.totalSupply().call()
+        try:
+            # Get token info
+            name = contract.functions.name().call()
+            symbol = contract.functions.symbol().call()
+            decimals = contract.functions.decimals().call()
+            total_supply = contract.functions.totalSupply().call()
+            logger.debug(f"Retrieved token info - Name: {name}, Symbol: {symbol}, Decimals: {decimals}")
 
-        # Get balance if address is provided
-        balance = None
-        if params.address:
-            balance = contract.functions.balanceOf(params.address).call()
+            # Get balance if address is provided
+            balance = None
+            if params.address:
+                balance = contract.functions.balanceOf(params.address).call()
+                logger.debug(f"Retrieved balance for {params.address}: {balance}")
 
-        return TokenInfoResult(
-            name=name,
-            symbol=symbol,
-            decimals=decimals,
-            total_supply=total_supply,
-            balance=balance
-        )
+            result = TokenInfoResult(
+                name=name,
+                symbol=symbol,
+                decimals=decimals,
+                total_supply=total_supply,
+                balance=balance
+            )
+            logger.info("Successfully retrieved token info")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to get token info: {str(e)}")
+            raise
 
     async def transfer(self, params: TransferParams) -> TransactionResult:
         """Transfer tokens to another address on Mode network."""
+        logger.info(f"Transferring {params.amount} tokens to {params.to_address}")
         self._validate_mode_network()
         contract = self.w3.eth.contract(address=params.token_address, abi=self.abi)
 
-        # Build transfer transaction
-        transfer_txn = contract.functions.transfer(
-            params.to_address,
-            params.amount
-        ).build_transaction({
-            'from': self.account.address,
-            'nonce': self.w3.eth.get_transaction_count(self.account.address),
-            'gasPrice': self.w3.eth.gas_price
-        })
-
-        # Estimate gas with Mode-specific adjustments
-        transfer_txn['gas'] = self._estimate_gas(transfer_txn)
-
         try:
+            # Build transfer transaction
+            nonce = await self.w3.eth.get_transaction_count(self.account.address)
+            gas_price = self.w3.eth.gas_price
+            logger.debug(f"Building transaction - Nonce: {nonce}, Gas Price: {gas_price}")
+
+            transfer_txn = contract.functions.transfer(
+                params.to_address,
+                params.amount
+            ).build_transaction({
+                'from': self.account.address,
+                'nonce': nonce,
+                'gasPrice': gas_price
+            })
+
+            # Estimate gas with Mode-specific adjustments
+            transfer_txn['gas'] = self._estimate_gas(transfer_txn)
+            logger.debug(f"Estimated gas: {transfer_txn['gas']}")
+
             # Sign and send transaction
             signed_txn = self.w3.eth.account.sign_transaction(transfer_txn, self.account.key)
-            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            logger.debug("Transaction signed")
+            
+            tx_hash = await self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            logger.debug(f"Transaction sent with hash: {tx_hash}")
+            
+            tx_receipt = await self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            logger.debug(f"Transaction receipt received: {tx_receipt}")
 
             if tx_receipt['status'] != 1:
                 raise ValueError("Transfer failed")
 
-            tx_hash_hex = f"0x{tx_receipt['transactionHash'].hex()}"
-            return TransactionResult(
+            tx_hash_hex = tx_hash if isinstance(tx_hash, str) else f"0x{tx_hash.hex()}"
+            result = TransactionResult(
                 transaction_hash=tx_hash_hex,
                 explorer_url=f"{self.mode_config['explorer_url']}/tx/{tx_hash_hex}"
             )
+            logger.info("Transfer completed successfully")
+            return result
         except Exception as e:
+            logger.error(f"Transfer failed: {str(e)}")
             raise ValueError(f"Failed to transfer tokens on Mode network: {str(e)}")
 
     async def approve(self, params: ApproveParams) -> TransactionResult:
         """Approve token spending on Mode network."""
+        logger.info(f"Approving {params.amount} tokens for spender {params.spender_address}")
         self._validate_mode_network()
         contract = self.w3.eth.contract(address=params.token_address, abi=self.abi)
 
-        # Build approve transaction
-        approve_txn = contract.functions.approve(
-            params.spender_address,
-            params.amount
-        ).build_transaction({
-            'from': self.account.address,
-            'nonce': self.w3.eth.get_transaction_count(self.account.address),
-            'gasPrice': self.w3.eth.gas_price
-        })
-
-        # Estimate gas with Mode-specific adjustments
-        approve_txn['gas'] = self._estimate_gas(approve_txn)
-
         try:
+            # Build approve transaction
+            nonce = await self.w3.eth.get_transaction_count(self.account.address)
+            gas_price = self.w3.eth.gas_price
+            logger.debug(f"Building transaction - Nonce: {nonce}, Gas Price: {gas_price}")
+
+            approve_txn = contract.functions.approve(
+                params.spender_address,
+                params.amount
+            ).build_transaction({
+                'from': self.account.address,
+                'nonce': nonce,
+                'gasPrice': gas_price
+            })
+
+            # Estimate gas with Mode-specific adjustments
+            approve_txn['gas'] = self._estimate_gas(approve_txn)
+            logger.debug(f"Estimated gas: {approve_txn['gas']}")
+
             # Sign and send transaction
             signed_txn = self.w3.eth.account.sign_transaction(approve_txn, self.account.key)
-            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            logger.debug("Transaction signed")
+            
+            tx_hash = await self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            logger.debug(f"Transaction sent with hash: {tx_hash}")
+            
+            tx_receipt = await self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            logger.debug(f"Transaction receipt received: {tx_receipt}")
 
             if tx_receipt['status'] != 1:
                 raise ValueError("Approve failed")
 
-            tx_hash_hex = f"0x{tx_receipt['transactionHash'].hex()}"
-            return TransactionResult(
+            tx_hash_hex = tx_hash if isinstance(tx_hash, str) else f"0x{tx_hash.hex()}"
+            result = TransactionResult(
                 transaction_hash=tx_hash_hex,
                 explorer_url=f"{self.mode_config['explorer_url']}/tx/{tx_hash_hex}"
             )
+            logger.info("Approval completed successfully")
+            return result
         except Exception as e:
+            logger.error(f"Approval failed: {str(e)}")
             raise ValueError(f"Failed to approve token spending on Mode network: {str(e)}")
 
     async def transfer_from(self, params: TransferFromParams) -> TransactionResult:
@@ -343,6 +390,7 @@ class ERC20Plugin(PluginBase):
 
     async def get_token_allowance(self, params: GetTokenAllowanceParams) -> int:
         """Get the allowance of tokens that a spender can spend on behalf of an owner."""
+        logger.info(f"Getting allowance for owner {params.owner_address} and spender {params.spender_address}")
         self._validate_mode_network()
         contract = self.w3.eth.contract(address=params.token_address, abi=self.abi)
 
@@ -351,8 +399,10 @@ class ERC20Plugin(PluginBase):
                 params.owner_address,
                 params.spender_address
             ).call()
+            logger.debug(f"Retrieved allowance: {allowance}")
             return allowance
         except Exception as e:
+            logger.error(f"Failed to get allowance: {str(e)}")
             raise ValueError(f"Failed to get allowance on Mode network: {str(e)}")
 
     def convert_to_base_unit(self, params: ConvertToBaseUnitParams) -> int:

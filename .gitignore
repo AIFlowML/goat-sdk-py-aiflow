@@ -169,3 +169,66 @@ local_venv/
 *.sublime-theme
 *.sublime-color-scheme
 *.sublime-syntax
+
+# Cursor and Ws
+.windsurrules 
+.cursorrules 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Logs
+*.log
+
+# Local development
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore Uniswap plugin for now
+# goat_sdk/plugins/uniswap/
+# tests/plugins/uniswap/
+logs
+scripts
+extra

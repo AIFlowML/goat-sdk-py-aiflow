@@ -1,6 +1,7 @@
 """Uniswap service implementation."""
 import asyncio
 import json
+import logging
 from typing import Any, Dict, Optional, Callable, ClassVar, List, Tuple
 from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
@@ -8,6 +9,8 @@ from eth_typing import Address
 from web3 import Web3
 import aiohttp
 from pathlib import Path
+import time
+import os
 
 from goat_sdk.core.classes.tool_base import ToolBase
 from goat_sdk.core.decorators import Tool
@@ -28,6 +31,78 @@ from .types import (
     PositionFees,
     UniswapPluginConfig
 )
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+# Set up logging with detailed format
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s'
+)
+
+# Create separate handlers for service and test logs
+service_handler = logging.FileHandler('logs/uniswap_service.log')
+test_handler = logging.FileHandler('logs/uniswap_test.log')
+console_handler = logging.StreamHandler()
+
+# Set format for all handlers
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s')
+service_handler.setFormatter(formatter)
+test_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Create separate loggers
+logger = logging.getLogger('uniswap.service')
+test_logger = logging.getLogger('uniswap.test')
+
+# Configure service logger
+logger.setLevel(logging.DEBUG)
+logger.addHandler(service_handler)
+logger.addHandler(console_handler)
+
+# Configure test logger
+test_logger.setLevel(logging.DEBUG)
+test_logger.addHandler(test_handler)
+test_logger.addHandler(console_handler)
+
+# Prevent log propagation to avoid duplicate logs
+logger.propagate = False
+test_logger.propagate = False
+
+# Set up logging to uniswap_debug.log for error-level logs
+error_logger = logging.getLogger('uniswap.error')
+error_logger.setLevel(logging.ERROR)
+
+# Create a file handler for error logs
+error_handler = logging.FileHandler('logs/uniswap_debug.log')
+error_handler.setLevel(logging.ERROR)
+
+# Set format for error handler
+error_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s')
+error_handler.setFormatter(error_formatter)
+
+# Add error handler to the logger
+error_logger.addHandler(error_handler)
+
+# Performance metrics
+OPERATION_TIMES = {}
+ERROR_COUNTS = {}
+
+def log_operation_time(operation: str, duration: float) -> None:
+    """Log operation time for performance tracking."""
+    if operation not in OPERATION_TIMES:
+        OPERATION_TIMES[operation] = []
+    OPERATION_TIMES[operation].append(duration)
+    logger.debug(f"Operation timing - {operation}: {duration:.3f}s")
+
+def log_error(operation: str, error: Exception) -> None:
+    """Log error for tracking."""
+    if operation not in ERROR_COUNTS:
+        ERROR_COUNTS[operation] = {}
+    error_type = type(error).__name__
+    ERROR_COUNTS[operation][error_type] = ERROR_COUNTS[operation].get(error_type, 0) + 1
+    logger.error(f"Error in {operation}: {error_type} - {str(error)}")
 
 class ContractCallError(Exception):
     """Base exception for contract call errors."""
@@ -63,26 +138,20 @@ class UniswapService(ToolBase):
     quoter: Any = Field(default=None, exclude=True)
     position_manager: Any = Field(default=None, exclude=True)
 
-    # Cache fields
-    token_cache: Dict[str, TokenInfo] = Field(default_factory=dict, exclude=True)
-    pool_cache: Dict[str, PoolInfo] = Field(default_factory=dict, exclude=True)
-    price_cache: Dict[str, Decimal] = Field(default_factory=dict, exclude=True)
-    last_price_update: int = Field(default=0, exclude=True)
+    # Cache fields with TTL tracking
+    token_cache: Dict[str, Tuple[TokenInfo, float]] = Field(default_factory=dict, exclude=True)
+    pool_cache: Dict[str, Tuple[PoolInfo, float]] = Field(default_factory=dict, exclude=True)
+    price_cache: Dict[str, Tuple[Decimal, float]] = Field(default_factory=dict, exclude=True)
+    CACHE_TTL: ClassVar[int] = 300  # 5 minutes
 
     # Model fields
     config: UniswapPluginConfig = Field()
     web3: Web3 = Field()
 
-    # Maximum number of retries for contract calls
+    # Operation constants
     MAX_RETRIES: ClassVar[int] = 3
-    
-    # Delay between retries (in seconds)
     RETRY_DELAY: ClassVar[int] = 1
-    
-    # Default timeout for contract calls (in seconds)
     DEFAULT_TIMEOUT: ClassVar[int] = 30
-    
-    # List of retriable error messages
     RETRIABLE_ERRORS: ClassVar[List[str]] = [
         "connection timeout",
         "request timeout",
@@ -92,30 +161,236 @@ class UniswapService(ToolBase):
     ]
 
     def __init__(self, config: UniswapPluginConfig, web3: Web3):
-        super().__init__(
-            name="UniswapService",
-            description="Service for interacting with Uniswap V2 and V3 protocols",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "config": {
-                        "type": "object",
-                        "description": "Uniswap plugin configuration"
+        """Initialize UniswapService with extensive logging."""
+        operation = "initialization"
+        start_time = time.time()
+        
+        try:
+            logger.info(f"[{operation}] Starting UniswapService initialization")
+            logger.debug(f"[{operation}] Configuration: {config}")
+            logger.debug(f"[{operation}] Web3 connection: {web3.provider}")
+            
+            super().__init__(
+                name="UniswapService",
+                description="Service for interacting with Uniswap V2 and V3 protocols",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "config": {"type": "object", "description": "Uniswap configuration"},
+                        "web3": {"type": "object", "description": "Web3 instance"}
                     },
-                    "web3": {
-                        "type": "object",
-                        "description": "Web3 instance"
-                    }
-                },
-                "required": ["config", "web3"]
-            }
-        )
-        self.config = config
-        self.web3 = web3
-        self.token_cache: Dict[str, TokenInfo] = {}
-        self.pool_cache: Dict[str, PoolInfo] = {}
-        self.price_cache: Dict[str, Decimal] = {}
-        self.last_price_update = 0
+                    "required": ["config", "web3"]
+                }
+            )
+            
+            self.config = config
+            self.web3 = web3
+            
+            # Initialize caches with timestamps
+            self.token_cache = {}
+            self.pool_cache = {}
+            self.price_cache = {}
+            
+            logger.info(f"[{operation}] UniswapService initialized successfully")
+            logger.debug(f"[{operation}] Initial state: {vars(self)}")
+            
+            duration = time.time() - start_time
+            log_operation_time(operation, duration)
+            
+        except Exception as e:
+            logger.error(f"[{operation}] Failed to initialize UniswapService")
+            logger.error(f"[{operation}] Error: {str(e)}")
+            logger.error(f"[{operation}] Stack trace:", exc_info=True)
+            log_error(operation, e)
+            raise
+
+    get_pool_info: ClassVar = Tool
+
+    @get_pool_info
+    async def get_pool_info(self, token_a: str, token_b: str, fee: PoolFee) -> PoolInfo:
+        """Get information about a specific Uniswap V3 pool."""
+        operation = "get_pool_info"
+        start_time = time.time()
+        
+        try:
+            logger.info(f"[{operation}] Starting pool info retrieval")
+            logger.debug(f"[{operation}] Parameters: token_a={token_a}, token_b={token_b}, fee={fee}")
+            
+            # Check cache first
+            cache_key = f"{token_a}-{token_b}-{fee}"
+            if cache_key in self.pool_cache:
+                pool_info, timestamp = self.pool_cache[cache_key]
+                if time.time() - timestamp < self.CACHE_TTL:
+                    logger.debug(f"[{operation}] Cache hit for {cache_key}")
+                    return pool_info
+            
+            # Validate inputs
+            logger.debug(f"[{operation}] Validating input addresses")
+            if not self.web3.is_address(token_a):
+                raise ValueError(f"Invalid token_a address: {token_a}")
+            if not self.web3.is_address(token_b):
+                raise ValueError(f"Invalid token_b address: {token_b}")
+            
+            # Get pool info from contract
+            logger.debug(f"[{operation}] Fetching pool info from contract")
+            pool_info = await self._get_pool_info_from_contract(token_a, token_b, fee)
+            
+            # Update cache
+            logger.debug(f"[{operation}] Updating cache with new pool info")
+            self.pool_cache[cache_key] = (pool_info, time.time())
+            
+            duration = time.time() - start_time
+            log_operation_time(operation, duration)
+            
+            logger.info(f"[{operation}] Successfully retrieved pool info")
+            return pool_info
+        except Exception as e:
+            error_logger.error(f"[{operation}] Failed to retrieve pool info")
+            error_logger.error(f"[{operation}] Error: {str(e)}")
+            error_logger.error(f"[{operation}] Stack trace:", exc_info=True)
+            log_error(operation, e)
+            raise
+
+    async def _load_abi(self, filename: str) -> List[Dict[str, Any]]:
+        """Load ABI from file with extensive error handling and logging."""
+        operation = "load_abi"
+        start_time = time.time()
+        
+        try:
+            logger.info(f"[{operation}] Loading ABI from {filename}")
+            
+            # Try loading from package directory first
+            package_dir = Path(__file__).parent
+            abi_dir = package_dir / "abis"
+            abi_path = abi_dir / filename
+            
+            logger.debug(f"[{operation}] Checking package directory: {abi_path}")
+            
+            if abi_path.exists():
+                logger.debug(f"[{operation}] Found ABI in package directory")
+                with open(abi_path) as f:
+                    abi = json.load(f)
+                    logger.debug(f"[{operation}] Successfully loaded ABI: {len(abi)} entries")
+                    return abi
+            
+            # Try alternative locations
+            alt_locations = [
+                Path.home() / ".uniswap" / "abis",
+                Path("/etc/uniswap/abis"),
+                Path.cwd() / "abis"
+            ]
+            
+            for location in alt_locations:
+                alt_path = location / filename
+                logger.debug(f"[{operation}] Checking alternative location: {alt_path}")
+                if alt_path.exists():
+                    logger.debug(f"[{operation}] Found ABI in alternative location")
+                    with open(alt_path) as f:
+                        abi = json.load(f)
+                        logger.debug(f"[{operation}] Successfully loaded ABI: {len(abi)} entries")
+                        return abi
+            
+            # Fallback to minimal ABI
+            logger.warning(f"[{operation}] No ABI file found, using minimal ABI")
+            minimal_abi = self._get_minimal_abi(filename)
+            logger.debug(f"[{operation}] Using minimal ABI: {len(minimal_abi)} entries")
+            
+            duration = time.time() - start_time
+            log_operation_time(operation, duration)
+            
+            return minimal_abi
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"[{operation}] Invalid ABI format in {filename}")
+            logger.error(f"[{operation}] Error: {str(e)}")
+            logger.error(f"[{operation}] Stack trace:", exc_info=True)
+            log_error(operation, e)
+            raise ContractABIError(f"Invalid ABI format in {filename}: {str(e)}")
+            
+        except Exception as e:
+            logger.error(f"[{operation}] Failed to load ABI from {filename}")
+            logger.error(f"[{operation}] Error: {str(e)}")
+            logger.error(f"[{operation}] Stack trace:", exc_info=True)
+            log_error(operation, e)
+            raise ContractABIError(f"Error loading ABI from {filename}: {str(e)}")
+
+    async def _call_contract(
+            self,
+            contract: Any,
+            function_name: str,
+            *args,
+            retry_count: int = 0,
+            validation_func: Optional[Callable] = None,
+            **kwargs
+        ) -> Any:
+        """Call contract method with retries and extensive logging."""
+        operation = f"contract_call_{function_name}"
+        start_time = time.time()
+        
+        try:
+            logger.info(f"[{operation}] Starting contract call")
+            logger.debug(f"[{operation}] Contract: {contract.address}")
+            logger.debug(f"[{operation}] Function: {function_name}")
+            logger.debug(f"[{operation}] Args: {args}")
+            logger.debug(f"[{operation}] Kwargs: {kwargs}")
+            logger.debug(f"[{operation}] Retry count: {retry_count}")
+            
+            # Get contract function
+            contract_func = getattr(contract.functions, function_name)
+            logger.debug(f"[{operation}] Contract function retrieved")
+            
+            # Call function
+            func_instance = contract_func(*args, **kwargs)
+            logger.debug(f"[{operation}] Function instance created")
+            
+            # Handle async/sync calls
+            if asyncio.iscoroutine(func_instance):
+                logger.debug(f"[{operation}] Executing async call")
+                response = await func_instance
+            else:
+                logger.debug(f"[{operation}] Executing sync call")
+                response = func_instance.call()
+                if asyncio.iscoroutine(response):
+                    response = await response
+            
+            # Validate response
+            if validation_func:
+                logger.debug(f"[{operation}] Validating response")
+                if not validation_func(response):
+                    raise ContractValidationError(
+                        f"Validation failed for {function_name} response: {response}"
+                    )
+            
+            duration = time.time() - start_time
+            log_operation_time(operation, duration)
+            
+            logger.info(f"[{operation}] Contract call successful")
+            logger.debug(f"[{operation}] Response: {response}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"[{operation}] Contract call failed")
+            logger.error(f"[{operation}] Error: {str(e)}")
+            logger.error(f"[{operation}] Stack trace:", exc_info=True)
+            
+            # Handle retries
+            if retry_count < self.MAX_RETRIES and any(err in str(e) for err in self.RETRIABLE_ERRORS):
+                retry_count += 1
+                wait_time = self.RETRY_DELAY * (2 ** (retry_count - 1))
+                logger.warning(f"[{operation}] Retrying in {wait_time}s (attempt {retry_count}/{self.MAX_RETRIES})")
+                await asyncio.sleep(wait_time)
+                return await self._call_contract(
+                    contract,
+                    function_name,
+                    *args,
+                    retry_count=retry_count,
+                    validation_func=validation_func,
+                    **kwargs
+                )
+            
+            log_error(operation, e)
+            raise
 
     @property
     def config(self) -> UniswapPluginConfig:
@@ -134,128 +409,6 @@ class UniswapService(ToolBase):
     @web3.setter
     def web3(self, value: Web3) -> None:
         self._web3 = value
-
-    async def _load_abi(self, filename: str) -> List[Dict[str, Any]]:
-        """Load ABI from file with fallback options."""
-        try:
-            # Try loading from package directory first
-            package_dir = Path(__file__).parent
-            abi_dir = package_dir / "abis"
-            abi_path = abi_dir / filename
-            
-            if abi_path.exists():
-                with open(abi_path) as f:
-                    return json.load(f)
-            
-            # Try loading from alternative locations
-            alt_locations = [
-                Path.home() / ".uniswap" / "abis",  # User's home directory
-                Path("/etc/uniswap/abis"),          # System-wide location
-                Path.cwd() / "abis"                 # Current working directory
-            ]
-            
-            for location in alt_locations:
-                alt_path = location / filename
-                if alt_path.exists():
-                    with open(alt_path) as f:
-                        return json.load(f)
-            
-            # If no ABI file found, try fetching from Etherscan
-            # This would require Etherscan API integration
-            
-            # Return minimal ABI as last resort
-            return self._get_minimal_abi(filename)
-            
-        except json.JSONDecodeError as e:
-            raise ContractABIError(f"Invalid ABI format in {filename}: {str(e)}")
-        except Exception as e:
-            raise ContractABIError(f"Error loading ABI from {filename}: {str(e)}")
-
-    def _get_minimal_abi(self, filename: str) -> List[Dict[str, Any]]:
-        """Get minimal ABI for basic functionality."""
-        minimal_abis = {
-            "router.json": [
-                {"type": "function", "name": "swapExactTokensForTokens", "stateMutability": "payable"},
-                {"type": "function", "name": "swapExactTokensForETH", "stateMutability": "payable"},
-                {"type": "function", "name": "swapExactETHForTokens", "stateMutability": "payable"}
-            ],
-            "factory.json": [
-                {"type": "function", "name": "createPair", "stateMutability": "nonpayable"},
-                {"type": "function", "name": "getPair", "stateMutability": "view"}
-            ],
-            "quoter.json": [
-                {"type": "function", "name": "quote", "stateMutability": "view"},
-                {"type": "function", "name": "quoteExactInputSingle", "stateMutability": "view"}
-            ],
-            "position_manager.json": [
-                {"type": "function", "name": "positions", "stateMutability": "view"},
-                {"type": "function", "name": "mint", "stateMutability": "payable"}
-            ]
-        }
-        return minimal_abis.get(filename, [])
-
-    async def _call_contract(
-            self,
-            contract: Any,
-            function_name: str,
-            *args,
-            retry_count: int = 0,
-            validation_func: Optional[Callable] = None,
-            **kwargs
-        ) -> Any:
-        try:
-            # Get the contract function
-            contract_func = getattr(contract.functions, function_name)
-            
-            # Call the function with arguments
-            func_instance = contract_func(*args, **kwargs)
-            
-            # Handle both async and sync calls
-            if asyncio.iscoroutine(func_instance):
-                response = await func_instance
-            else:
-                response = func_instance.call()
-                if asyncio.iscoroutine(response):
-                    response = await response
-            
-            # Validate response if validation function is provided
-            if validation_func and not validation_func(response):
-                raise ContractValidationError(
-                    f"Validation failed for {function_name} response: {response}"
-                )
-            
-            return response
-            
-        except ContractValidationError as e:
-            # Don't retry validation errors
-            raise ContractCallError(f"Contract call failed: {str(e)}")
-            
-        except Exception as e:
-            error_msg = str(e).lower()
-            
-            # Check if error is retriable and we haven't exceeded max retries
-            if retry_count < self.MAX_RETRIES and any(
-                err in error_msg for err in self.RETRIABLE_ERRORS
-            ):
-                # Wait before retrying
-                await asyncio.sleep(self.RETRY_DELAY * (2 ** retry_count))
-                
-                # Retry with incremented count
-                return await self._call_contract(
-                    contract,
-                    function_name,
-                    *args,
-                    retry_count=retry_count + 1,
-                    validation_func=validation_func,
-                    **kwargs
-                )
-            
-            # Convert to ContractExecutionError if it's a contract revert
-            if "revert" in error_msg:
-                raise ContractExecutionError(f"Contract execution failed: {str(e)}")
-            
-            # Otherwise raise as ContractCallError
-            raise ContractCallError(f"Contract call failed: {str(e)}")
 
     async def _validate_and_cache_contract(self, contract: Any, address: str) -> None:
         """

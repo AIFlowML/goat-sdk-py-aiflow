@@ -1,4 +1,4 @@
-"""Tests for the Phidata adapter."""
+"""Tests for the Phidata adapter example."""
 
 import pytest
 from unittest.mock import Mock, AsyncMock, MagicMock
@@ -21,8 +21,7 @@ sys.modules['phidata.core'] = MockPhidataCore
 sys.modules['phidata.core.toolkit'] = MagicMock(Toolkit=MockToolkit)
 
 from goat_sdk.core.classes.tool_base import ToolBase
-from goat_sdk.core.classes.wallet_client_base import WalletClientBase
-from goat_sdk.adapters.phidata import get_on_chain_toolkit, GoatToolkit
+from goat_sdk.adapters.phidata import get_on_chain_toolkit, create_phidata_toolkit
 
 @pytest.fixture
 def mock_tool():
@@ -41,63 +40,48 @@ def mock_tool():
     return tool
 
 @pytest.fixture
-def mock_wallet():
-    """Create a mock wallet client."""
-    wallet = Mock(spec=WalletClientBase)
-    wallet.provider_url = "https://test.network"
-    wallet.private_key = "0x123"
-    return wallet
+def mock_plugin():
+    """Create a mock plugin."""
+    plugin = Mock()
+    plugin.get_tools = AsyncMock()
+    return plugin
 
 @pytest.mark.asyncio
-async def test_goat_toolkit_creation(mock_tool):
+async def test_toolkit_creation(mock_tool):
     """Test creating a Phidata toolkit from GOAT SDK tools."""
-    # Create toolkit
-    toolkit = GoatToolkit([mock_tool])
-
-    # Check toolkit properties
+    toolkit = create_phidata_toolkit([mock_tool])
     assert isinstance(toolkit, MockToolkit)
     assert toolkit.name == "goat_toolkit"
     assert hasattr(toolkit, f"execute_{mock_tool.name}")
 
 @pytest.mark.asyncio
-async def test_goat_toolkit_execution(mock_tool):
+async def test_toolkit_execution(mock_tool):
     """Test executing a tool in the toolkit."""
-    # Create toolkit
-    toolkit = GoatToolkit([mock_tool])
-
-    # Execute tool
+    toolkit = create_phidata_toolkit([mock_tool])
     result = await getattr(toolkit, f"execute_{mock_tool.name}")(param1="test", param2=123)
     assert result == "Tool executed"
-    mock_tool.execute.assert_called_once_with(param1="test", param2=123)
+    mock_tool.execute.assert_called_once_with({"param1": "test", "param2": 123})
 
 @pytest.mark.asyncio
-async def test_get_on_chain_toolkit(mock_wallet, mock_tool):
+async def test_get_on_chain_toolkit(mock_plugin, mock_tool):
     """Test getting Phidata toolkit from plugins."""
-    # Create toolkit
-    toolkit = await get_on_chain_toolkit(mock_wallet)
-
-    # Check toolkit properties
+    mock_plugin.get_tools.return_value = [mock_tool]
+    toolkit = await get_on_chain_toolkit(plugins=[mock_plugin])
     assert isinstance(toolkit, MockToolkit)
     assert toolkit.name == "goat_toolkit"
+    assert hasattr(toolkit, f"execute_{mock_tool.name}")
 
 @pytest.mark.asyncio
 async def test_toolkit_error_handling(mock_tool):
     """Test error handling in toolkit execution."""
-    # Set up mock to raise error
-    error_message = "Test error"
-    mock_tool.execute.side_effect = Exception(error_message)
-
-    # Create toolkit
-    toolkit = GoatToolkit([mock_tool])
-
-    # Execute tool and check error handling
-    with pytest.raises(Exception, match=error_message):
-        await getattr(toolkit, f"execute_{mock_tool.name}")()
+    mock_tool.execute = AsyncMock(side_effect=ValueError("Test error"))
+    toolkit = create_phidata_toolkit([mock_tool])
+    result = await getattr(toolkit, f"execute_{mock_tool.name}")()
+    assert "Error executing test_tool: Test error" in result
 
 @pytest.mark.asyncio
 async def test_toolkit_multiple_tools(mock_tool):
     """Test toolkit with multiple tools."""
-    # Create multiple mock tools
     tool1 = mock_tool
     tool2 = Mock(spec=ToolBase)
     tool2.name = "test_tool_2"
@@ -105,29 +89,20 @@ async def test_toolkit_multiple_tools(mock_tool):
     tool2.parameters = {"type": "object"}
     tool2.execute = AsyncMock(return_value="Tool 2 executed")
 
-    # Create toolkit with multiple tools
-    toolkit = GoatToolkit([tool1, tool2])
-
-    # Check both tools are accessible
+    toolkit = create_phidata_toolkit([tool1, tool2])
     assert hasattr(toolkit, f"execute_{tool1.name}")
     assert hasattr(toolkit, f"execute_{tool2.name}")
 
-    # Execute both tools
     result1 = await getattr(toolkit, f"execute_{tool1.name}")()
     result2 = await getattr(toolkit, f"execute_{tool2.name}")()
-
     assert result1 == "Tool executed"
     assert result2 == "Tool 2 executed"
 
 @pytest.mark.asyncio
 async def test_toolkit_function_metadata(mock_tool):
     """Test that tool executor functions have correct metadata."""
-    toolkit = GoatToolkit([mock_tool])
-    
-    # Get function
+    toolkit = create_phidata_toolkit([mock_tool])
     func = getattr(toolkit, f"execute_{mock_tool.name}")
-    
-    # Check metadata
     assert func.__doc__ == mock_tool.description
     assert hasattr(func, "__parameters__")
     assert func.__parameters__ == mock_tool.parameters

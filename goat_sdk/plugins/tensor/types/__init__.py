@@ -4,6 +4,16 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GetNFTInfoRequest(BaseModel):
+    """Request parameters for get_nft_info."""
+    mint_hash: str = Field(description="The mint hash of the NFT")
+
+
+class GetBuyListingTransactionRequest(BaseModel):
+    """Request parameters for get_buy_listing_transaction."""
+    mint_hash: str = Field(description="The mint hash of the NFT")
+
+
 class LastSale(BaseModel):
     """Last sale information."""
     model_config = ConfigDict(populate_by_name=True)

@@ -11,7 +11,7 @@ from goat_sdk.plugins.spl_token.utils import (
     does_account_exist,
 )
 from goat_sdk.plugins.spl_token.models import Token, SolanaNetwork
-from goat_sdk.plugins.spl_token.exceptions import TokenNotFoundError
+from goat_sdk.plugins.spl_token.exceptions import TokenNotFoundError, InvalidTokenAddressError, TokenAccountNotFoundError
 
 
 @dataclass
@@ -107,16 +107,45 @@ async def test_does_account_exist(mock_wallet_client):
     mock_account_info = MockAccountInfo(value=mock_value)
     mock_wallet_client.connection.get_account_info.return_value = mock_account_info
     
-    exists = await does_account_exist(mock_wallet_client, "0x" + "11" * 32)
-    assert exists is True
-
+    # Valid addresses in base58 format
+    owner_address = "11111111111111111111111111111111"  # Valid base58 string
+    mint_address = "22222222222222222222222222222222"  # Valid base58 string
+    
+    exists = await does_account_exist(mock_wallet_client, owner_address, mint_address)
+    assert exists is not None
+    
     # Test account does not exist
     mock_account_info = MockAccountInfo(value=None)
     mock_wallet_client.connection.get_account_info.return_value = mock_account_info
     
-    exists = await does_account_exist(mock_wallet_client, "0x" + "11" * 32)
-    assert exists is False
+    exists = await does_account_exist(mock_wallet_client, owner_address, mint_address)
+    assert exists is None
+    
+    # Test invalid owner address
+    with pytest.raises(InvalidTokenAddressError):
+        await does_account_exist(mock_wallet_client, "invalid", mint_address)
+    
+    # Test invalid mint address
+    with pytest.raises(InvalidTokenAddressError):
+        await does_account_exist(mock_wallet_client, owner_address, "invalid")
+    
+    # Test RPC error
+    mock_wallet_client.connection.get_account_info.side_effect = Exception("RPC error")
+    with pytest.raises(TokenAccountNotFoundError) as exc_info:
+        await does_account_exist(mock_wallet_client, owner_address, mint_address)
+    assert "RPC error" in str(exc_info.value)
 
-    # Test invalid address
-    exists = await does_account_exist(mock_wallet_client, "invalid")
-    assert exists is False 
+@pytest.mark.asyncio
+async def test_does_account_exist_error():
+    """Test does_account_exist error handling."""
+    # Test with None wallet client
+    with pytest.raises(TokenAccountNotFoundError) as exc_info:
+        await does_account_exist(None, "11111111111111111111111111111111", "22222222222222222222222222222222")
+    assert "wallet client" in str(exc_info.value).lower()
+    
+    # Test with invalid connection
+    mock_wallet_client = AsyncMock()
+    mock_wallet_client.get_connection.return_value = None
+    with pytest.raises(TokenAccountNotFoundError) as exc_info:
+        await does_account_exist(mock_wallet_client, "11111111111111111111111111111111", "22222222222222222222222222222222")
+    assert "connection" in str(exc_info.value).lower() 

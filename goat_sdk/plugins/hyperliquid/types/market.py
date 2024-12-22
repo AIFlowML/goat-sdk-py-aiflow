@@ -1,59 +1,50 @@
-"""Market types for Hyperliquid API."""
+"""Market data types for Hyperliquid API."""
 
-from dataclasses import dataclass
 from decimal import Decimal
 from typing import List, Optional
+from pydantic import BaseModel, Field, ConfigDict
 
-from .enums import OrderSide
+from .order import OrderSide
 
-@dataclass
-class MarketInfo:
+class MarketInfo(BaseModel):
     """Market information."""
     coin: str
-    base_currency: str
-    quote_currency: str
-    price_decimals: int
-    size_decimals: int
-    min_order_size: Decimal
-    max_order_size: Decimal
-    price_step: Decimal
-    size_step: Decimal
-    maker_fee: Decimal
-    taker_fee: Decimal
-    funding_rate: Decimal
-    open_interest: Decimal
-    mark_price: Decimal
-    index_price: Decimal
-    volume_24h: Decimal
+    price: Decimal
+    index_price: Decimal = Field(alias="indexPrice")
+    mark_price: Decimal = Field(alias="markPrice")
+    open_interest: Decimal = Field(alias="openInterest", default=Decimal("0"))
+    funding_rate: Decimal = Field(alias="fundingRate", default=Decimal("0"))
+    volume_24h: Decimal = Field(alias="volume24h", default=Decimal("0"))
+    size_decimals: int = Field(alias="sizeDecimals")
     
-@dataclass
-class MarketSummary:
-    """Market summary."""
+    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
+
+class MarketSummary(BaseModel):
+    """Market summary information."""
     coin: str
-    last_price: Decimal
-    bid: Decimal
-    ask: Decimal
-    volume_24h: Decimal
-    open_interest: Decimal
-    funding_rate: Decimal
+    price: Decimal
+    volume_24h: Decimal = Field(default=Decimal("0"))
+    open_interest: Decimal = Field(default=Decimal("0"))
+    funding_rate: Decimal = Field(default=Decimal("0"))
     
-@dataclass
-class OrderbookLevel:
-    """Orderbook price level."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+class OrderbookLevel(BaseModel):
+    """Single level in orderbook."""
     price: Decimal
     size: Decimal
-    num_orders: int
     
-@dataclass
-class OrderbookResponse:
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+class OrderbookResponse(BaseModel):
     """Orderbook response."""
     coin: str
     bids: List[OrderbookLevel]
     asks: List[OrderbookLevel]
-    timestamp: int
     
-@dataclass
-class TradeInfo:
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+class TradeInfo(BaseModel):
     """Trade information."""
     coin: str
     id: str
@@ -61,21 +52,5 @@ class TradeInfo:
     size: Decimal
     side: OrderSide
     timestamp: int
-    liquidation: bool
     
-@dataclass
-class Market:
-    """Market information."""
-    name: str
-    base_currency: str
-    quote_currency: str
-    price_decimals: int
-    size_decimals: int
-    min_order_size: Decimal
-    max_leverage: Decimal
-    price: Decimal
-    index_price: Decimal
-    open_interest: Decimal
-    funding_rate: Decimal
-    volume_24h: Decimal
-    is_active: bool
+    model_config = ConfigDict(frozen=True, extra="forbid")

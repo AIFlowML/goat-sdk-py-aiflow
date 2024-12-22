@@ -2,7 +2,6 @@
 
 from typing import Any, Dict, List, Optional
 import aiohttp
-from solana.rpc.async_api import AsyncClient
 
 from goat_sdk.core import ModeClientBase
 from goat_sdk.core.decorators.tool import tool
@@ -10,6 +9,8 @@ from goat_sdk.plugins.tensor.config import TensorConfig
 from goat_sdk.plugins.tensor.types import (
     NFTInfo,
     BuyListingTransactionResponse,
+    GetNFTInfoRequest,
+    GetBuyListingTransactionRequest,
 )
 from goat_sdk.plugins.tensor.utils.transaction import deserialize_tx_response_to_instructions
 
@@ -51,11 +52,11 @@ class TensorClient(ModeClientBase):
         self._session = None
 
     @tool(description="Get information about an NFT from the Tensor API")
-    async def get_nft_info(self, mint_hash: str) -> NFTInfo:
+    async def get_nft_info(self, request: GetNFTInfoRequest) -> NFTInfo:
         """Get information about an NFT.
 
         Args:
-            mint_hash: The mint hash of the NFT
+            request: The request parameters
 
         Returns:
             NFT information
@@ -70,7 +71,7 @@ class TensorClient(ModeClientBase):
         try:
             response = await self._session.get(
                 f"{self.config.api_url}/mint",
-                params={"mints": mint_hash},
+                params={"mints": request.mint_hash},
             )
             data = await response.json()
 
@@ -86,13 +87,13 @@ class TensorClient(ModeClientBase):
     async def get_buy_listing_transaction(
         self,
         wallet_client: Any,
-        mint_hash: str,
+        request: GetBuyListingTransactionRequest,
     ) -> Dict[str, Any]:
         """Get a transaction to buy an NFT from a listing.
 
         Args:
             wallet_client: The wallet client
-            mint_hash: The mint hash of the NFT
+            request: The request parameters
 
         Returns:
             Transaction information
@@ -104,17 +105,17 @@ class TensorClient(ModeClientBase):
         if not self._session:
             raise RuntimeError("Client not initialized. Use async context manager.")
 
-        nft_info = await self.get_nft_info(mint_hash)
+        nft_info = await self.get_nft_info(GetNFTInfoRequest(mint_hash=request.mint_hash))
 
         price = nft_info.listing.price if nft_info.listing else None
         owner = nft_info.owner
 
         if not price or not owner:
-            raise Exception(f"No listing found for {mint_hash}")
+            raise Exception(f"No listing found for {request.mint_hash}")
 
         params = {
             "buyer": wallet_client.get_address(),
-            "mint": mint_hash,
+            "mint": request.mint_hash,
             "owner": owner,
             "maxPrice": price,
             "blockhash": "11111111111111111111111111111111",
@@ -132,10 +133,8 @@ class TensorClient(ModeClientBase):
                 raise Exception(f"Failed to get buy listing transaction: {error_message}")
 
             tx_response = BuyListingTransactionResponse(**data)
-            connection = AsyncClient(wallet_client.get_connection().endpoint_url)
 
             transaction, instructions = await deserialize_tx_response_to_instructions(
-                connection,
                 tx_response,
             )
 

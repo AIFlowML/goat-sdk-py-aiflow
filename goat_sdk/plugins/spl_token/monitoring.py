@@ -10,8 +10,11 @@ from prometheus_client import Counter, Histogram
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from tenacity import retry, stop_after_attempt, wait_exponential
+import asyncio
+import functools
 
 from goat_sdk.plugins.spl_token.parameters import ModeConfig
+from goat_sdk.plugins.spl_token.exceptions import TokenNotFoundError, TokenTransferError, InvalidTokenAddressError
 
 logger = logging.getLogger(__name__)
 
@@ -43,25 +46,38 @@ MODE_VALIDATION_FAILURES = Counter(
 # Type variables for function decorators
 F = TypeVar("F", bound=Callable[..., Any])
 
+def log_decorator_error(decorator_name: str, operation_name: str, error: Exception, context: str = "") -> None:
+    """Helper function to log decorator errors."""
+    logger.error(f"[{operation_name}][{decorator_name}] Error in {context}")
+    logger.error(f"[{operation_name}][{decorator_name}] Error type: {type(error)}")
+    logger.error(f"[{operation_name}][{decorator_name}] Error message: {str(error)}")
+    logger.error(f"[{operation_name}][{decorator_name}] Error attributes: {vars(error) if hasattr(error, '__dict__') else str(error)}")
+    if hasattr(error, '__cause__'):
+        logger.error(f"[{operation_name}][{decorator_name}] Caused by: {error.__cause__}")
+    if hasattr(error, '__context__'):
+        logger.error(f"[{operation_name}][{decorator_name}] Context: {error.__context__}")
+    logger.error(f"[{operation_name}][{decorator_name}] Error traceback:", exc_info=True)
+
 def trace_operation(operation_name: str) -> Callable[[F], F]:
-    """Decorator to trace SPL token operations.
-
-    Args:
-        operation_name: Name of the operation to trace
-
-    Returns:
-        Decorated function with tracing
-    """
+    """Decorator to trace SPL token operations."""
     def decorator(func: F) -> F:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             tracer = trace.get_tracer(__name__)
+            logger.info(f"[{operation_name}][trace_operation] Starting operation")
+            logger.debug(f"[{operation_name}][trace_operation] Function: {func.__name__}")
+            logger.debug(f"[{operation_name}][trace_operation] Args: {args}")
+            logger.debug(f"[{operation_name}][trace_operation] Kwargs: {kwargs}")
+            
             with tracer.start_as_current_span(operation_name) as span:
                 try:
+                    logger.debug(f"[{operation_name}][trace_operation] Executing function")
                     result = await func(*args, **kwargs)
+                    logger.debug(f"[{operation_name}][trace_operation] Function completed successfully")
                     span.set_status(Status(StatusCode.OK))
                     return result
                 except Exception as e:
+                    log_decorator_error("trace_operation", operation_name, e, "function execution")
                     span.set_status(Status(StatusCode.ERROR))
                     span.record_exception(e)
                     raise
@@ -71,78 +87,91 @@ def trace_operation(operation_name: str) -> Callable[[F], F]:
 
 def with_retries(
     operation_name: str,
-    max_attempts: Optional[int] = None,
-    min_wait_ms: int = 1000,
-    max_wait_ms: int = 10000,
+    max_attempts: Optional[int] = 3,
+    initial_delay: float = 1.0,
+    max_delay: float = 5.0,
+    backoff_factor: float = 2.0,
+    non_retryable_exceptions: tuple = (TokenTransferError, TokenNotFoundError, InvalidTokenAddressError)
 ) -> Callable[[F], F]:
-    """Decorator to add retry logic to SPL token operations.
-
-    Args:
-        operation_name: Name of the operation
-        max_attempts: Maximum number of retry attempts
-        min_wait_ms: Minimum wait time between retries in milliseconds
-        max_wait_ms: Maximum wait time between retries in milliseconds
-
-    Returns:
-        Decorated function with retry logic
-    """
+    """Decorator that implements retry logic with exponential backoff."""
     def decorator(func: F) -> F:
         @wraps(func)
-        @retry(
-            stop=stop_after_attempt(max_attempts or 3),
-            wait=wait_exponential(
-                multiplier=min_wait_ms / 1000,
-                max=max_wait_ms / 1000,
-            ),
-        )
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            try:
-                return await func(*args, **kwargs)
-            except Exception as e:
-                logger.warning(
-                    f"Operation {operation_name} failed: {str(e)}. Retrying..."
-                )
-                raise
+            logger.info(f"[{operation_name}][with_retries] Starting retry wrapper")
+            logger.debug(f"[{operation_name}][with_retries] Max attempts: {max_attempts}")
+            logger.debug(f"[{operation_name}][with_retries] Non-retryable exceptions: {non_retryable_exceptions}")
+            
+            delay = initial_delay
+            last_exception = None
+            attempts = max_attempts if isinstance(max_attempts, int) else 3
+
+            for attempt in range(attempts):
+                try:
+                    logger.debug(f"[{operation_name}][with_retries] Attempt {attempt + 1}/{attempts}")
+                    result = await func(*args, **kwargs)
+                    logger.debug(f"[{operation_name}][with_retries] Attempt {attempt + 1} succeeded")
+                    return result
+                except non_retryable_exceptions as e:
+                    log_decorator_error("with_retries", operation_name, e, "non-retryable error")
+                    raise
+                except Exception as e:
+                    last_exception = e
+                    log_decorator_error("with_retries", operation_name, e, f"attempt {attempt + 1}")
+                    
+                    if attempt < attempts - 1:
+                        logger.warning(
+                            f"[{operation_name}][with_retries] Retrying in {delay:.2f}s..."
+                        )
+                        await asyncio.sleep(delay)
+                        delay = min(delay * backoff_factor, max_delay)
+                    else:
+                        logger.error(f"[{operation_name}][with_retries] All {attempts} attempts failed")
+                        raise last_exception
 
         return cast(F, wrapper)
     return decorator
 
 def monitor_mode_performance(func: F) -> F:
-    """Decorator to monitor Mode-specific performance metrics.
-
-    Args:
-        func: Function to monitor
-
-    Returns:
-        Decorated function with performance monitoring
-    """
+    """Decorator to monitor Mode-specific performance metrics."""
     @wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
-        mode_config = kwargs.get("mode_config")
-        if not mode_config:
-            return await func(*args, **kwargs)
-
         operation_name = func.__name__
+        logger.info(f"[{operation_name}][monitor_mode_performance] Starting monitoring")
+        
+        mode_config = kwargs.get("mode_config")
         network = getattr(args[0], "network", "unknown")
-
+        logger.debug(f"[{operation_name}][monitor_mode_performance] Network: {network}")
+        logger.debug(f"[{operation_name}][monitor_mode_performance] Mode config: {mode_config}")
+        
+        start_time = time.time()
         try:
-            start_time = time.time()
             result = await func(*args, **kwargs)
             duration = time.time() - start_time
-
-            TOKEN_OPERATION_DURATION.labels(
-                operation=operation_name,
-                network=str(network),
-                mode_enabled="true"
-            ).observe(duration)
-
+            logger.debug(f"[{operation_name}][monitor_mode_performance] Operation completed in {duration:.3f}s")
+            
+            if mode_config:
+                TOKEN_OPERATION_DURATION.labels(
+                    operation=operation_name,
+                    network=str(network),
+                    mode_enabled="true"
+                ).observe(duration)
+            
             return result
         except Exception as e:
-            TOKEN_OPERATION_ERRORS.labels(
-                operation=operation_name,
-                network=str(network),
-                mode_enabled="true"
-            ).inc()
+            duration = time.time() - start_time
+            log_decorator_error("monitor_mode_performance", operation_name, e, "performance monitoring")
+            
+            if mode_config:
+                TOKEN_OPERATION_ERRORS.labels(
+                    operation=operation_name,
+                    network=str(network),
+                    mode_enabled="true"
+                ).inc()
+                TOKEN_OPERATION_DURATION.labels(
+                    operation=operation_name,
+                    network=str(network),
+                    mode_enabled="true"
+                ).observe(duration)
             raise
 
     return cast(F, wrapper)
