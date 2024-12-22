@@ -34,12 +34,19 @@ class JupiterClient(ModeClientBase):
         """
         self.config = config or JupiterConfig()
         self._session = session
-        self._headers = {"Content-Type": "application/json"}
+        self._headers = {
+            "Content-Type": "application/json",
+        }
+        if self.config.api_key:
+            self._headers["Authorization"] = f"Bearer {self.config.api_key}"
 
     async def __aenter__(self) -> "JupiterClient":
         """Enter async context."""
         if not self._session:
-            self._session = aiohttp.ClientSession(headers=self._headers)
+            self._session = aiohttp.ClientSession(
+                headers=self._headers,
+                timeout=aiohttp.ClientTimeout(total=self.config.timeout)
+            )
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -88,7 +95,7 @@ class JupiterClient(ModeClientBase):
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=0.5),
-        retry=retry_if_exception_type(aiohttp.ClientError),
+        retry=retry_if_exception_type((aiohttp.ClientError, QuoteError)),
         reraise=True,
     )
     async def get_quote(
@@ -96,38 +103,78 @@ class JupiterClient(ModeClientBase):
         input_mint: str,
         output_mint: str,
         amount: int,
-        slippage_bps: int = 50,
+        slippage_bps: int = None,
         mode: SwapMode = SwapMode.EXACT_IN,
         **kwargs: Any,
     ) -> QuoteResponse:
-        """Get quote for token swap."""
+        """Get quote for token swap.
+
+        Args:
+            input_mint: Input token mint address
+            output_mint: Output token mint address
+            amount: Amount of input tokens
+            slippage_bps: Slippage tolerance in basis points (optional)
+            mode: Swap mode (ExactIn or ExactOut)
+            **kwargs: Additional parameters for quote request
+
+        Returns:
+            Quote response with route information
+
+        Raises:
+            QuoteError: If quote request fails
+        """
+        if slippage_bps is None:
+            slippage_bps = self.config.default_slippage_bps
+
         try:
             return await self._get_quote_internal(
-                input_mint,
-                output_mint,
-                amount,
-                slippage_bps,
-                mode,
+                input_mint=input_mint,
+                output_mint=output_mint,
+                amount=amount,
+                slippage_bps=slippage_bps,
+                mode=mode,
                 **kwargs,
             )
-        except aiohttp.ClientError as e:
-            raise aiohttp.ClientError(f"Network error while getting quote: {str(e)}")
         except Exception as e:
             raise QuoteError(f"Failed to get quote: {str(e)}")
 
-    async def _get_swap_transaction_internal(
+    def _get_retry_decorator(self):
+        """Get retry decorator based on config."""
+        return retry(
+            stop=stop_after_attempt(self.config.max_retries),
+            wait=wait_exponential(multiplier=self.config.retry_delay),
+            retry=retry_if_exception_type((aiohttp.ClientError, QuoteError)),
+            reraise=True,
+        )
+
+    async def get_swap_transaction(
         self,
-        wallet_client: "WalletClient",  # type: ignore
+        wallet_client: Any,
         quote: QuoteResponse,
         **kwargs: Any,
     ) -> SwapResponse:
-        """Internal method to get swap transaction."""
+        """Get swap transaction for executing token swap.
+
+        Args:
+            wallet_client: Wallet client for signing transaction
+            quote: Quote response from get_quote
+            **kwargs: Additional parameters for swap request
+
+        Returns:
+            Swap response with transaction data
+
+        Raises:
+            SwapError: If swap request fails
+        """
         if not self._session:
             raise RuntimeError("Client not initialized. Use async context manager.")
 
         request = SwapRequest(
             userPublicKey=wallet_client.public_key,
-            quoteResponse=quote.model_dump(by_alias=True),
+            quoteResponse=quote,
+            computeUnitPriceMicroLamports=self.config.compute_unit_price_micro_lamports,
+            preferPostMint=self.config.prefer_post_mint_version,
+            maxAccounts=self.config.max_accounts_per_transaction,
             **kwargs,
         )
 
@@ -143,47 +190,41 @@ class JupiterClient(ModeClientBase):
 
         return SwapResponse(**data)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=0.5),
-        retry=retry_if_exception_type(aiohttp.ClientError),
-        reraise=True,
-    )
-    async def get_swap_transaction(
-        self,
-        wallet_client: "WalletClient",  # type: ignore
-        quote: QuoteResponse,
-        **kwargs: Any,
-    ) -> SwapResponse:
-        """Get swap transaction."""
-        try:
-            return await self._get_swap_transaction_internal(
-                wallet_client,
-                quote,
-                **kwargs,
-            )
-        except aiohttp.ClientError as e:
-            raise aiohttp.ClientError(f"Network error while getting swap transaction: {str(e)}")
-        except Exception as e:
-            raise SwapError(f"Failed to get swap transaction: {str(e)}")
-
     async def execute_swap(
         self,
-        wallet_client: "WalletClient",  # type: ignore
+        wallet_client: Any,
         quote: QuoteResponse,
         **kwargs: Any,
     ) -> SwapResult:
-        """Execute swap transaction."""
-        if not self._session:
-            raise RuntimeError("Client not initialized. Use async context manager.")
+        """Execute token swap.
 
-        swap_tx = await self.get_swap_transaction(wallet_client, quote, **kwargs)
-        tx = await wallet_client.deserialize_transaction(swap_tx.swap_transaction)
+        Args:
+            wallet_client: Wallet client for signing transaction
+            quote: Quote response from get_quote
+            **kwargs: Additional parameters for swap request
 
+        Returns:
+            Swap result with transaction details
+
+        Raises:
+            SwapError: If swap execution fails
+        """
         try:
-            signature = await wallet_client.send_transaction(tx)
+            # Get swap transaction
+            swap_response = await self.get_swap_transaction(
+                wallet_client=wallet_client,
+                quote=quote,
+                **kwargs,
+            )
+
+            # Sign and send transaction
+            transaction_hash = await wallet_client.sign_and_send_transaction(
+                swap_response.swap_transaction
+            )
+
+            # Return swap result
             return SwapResult(
-                transaction_hash=signature,
+                transaction_hash=transaction_hash,
                 input_amount=quote.in_amount,
                 output_amount=quote.out_amount,
                 price_impact=quote.price_impact_pct,
@@ -191,4 +232,4 @@ class JupiterClient(ModeClientBase):
                 route_plan=[step.model_dump(by_alias=True) for step in quote.route_plan],
             )
         except Exception as e:
-            raise SwapError(f"Failed to send transaction: {str(e)}") 
+            raise SwapError(f"Failed to execute swap: {str(e)}") 

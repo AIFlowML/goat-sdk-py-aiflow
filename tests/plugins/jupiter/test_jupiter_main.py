@@ -5,8 +5,8 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, create_autospec
 import asyncio
 
-from goat_sdk.plugins.jupiter.models import QuoteRequest, SwapRequest
-from goat_sdk.plugins.jupiter.types import SwapMode, QuoteResponse, SwapResult
+from goat_sdk.plugins.jupiter.models import QuoteRequest
+from goat_sdk.plugins.jupiter.types import SwapMode, QuoteResponse, SwapResult, SwapRequest
 from goat_sdk.core.wallet_client import ModeWalletClient
 
 
@@ -31,7 +31,12 @@ def mock_wallet_client():
         await asyncio.sleep(0)  # Ensure it's a coroutine
         return "0x" + "22" * 32
     
+    async def mock_sign_and_send_transaction(*args, **kwargs):
+        await asyncio.sleep(0)  # Ensure it's a coroutine
+        return "0x" + "22" * 32
+    
     client.send_transaction = mock_send_transaction
+    client.sign_and_send_transaction = mock_sign_and_send_transaction
     client.public_key = "0x" + "44" * 32
     return client
 
@@ -78,18 +83,14 @@ async def test_swap_tokens(jupiter_client, mock_quote_response, mock_swap_respon
     mock_session.post.return_value = mock_response
 
     request = SwapRequest(
-        wallet_client=mock_wallet_client,
-        quoteRequest=QuoteRequest(
-            inputMint="0x" + "11" * 32,
-            outputMint="0x" + "22" * 32,
-            amount="1000000",
-            slippageBps=50,
-            swapMode=SwapMode.EXACT_IN
-        )
+        userPublicKey=mock_wallet_client.public_key,
+        quoteResponse=quote,
+        dynamicComputeUnitLimit=True,
+        prioritizationFeeLamports="auto"
     )
 
     result = await jupiter_client.execute_swap(
-        wallet_client=request.wallet_client,
+        wallet_client=mock_wallet_client,
         quote=quote,
     )
 
