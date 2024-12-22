@@ -1,14 +1,68 @@
 """SPL Token Service implementation."""
 
 import logging
+import os
+from base58 import b58decode
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+# Set up logging with detailed format
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s'
+)
+
+# Create separate handlers for service and test logs
+service_handler = logging.FileHandler('logs/spl_token_service.log')
+test_handler = logging.FileHandler('logs/spl_token_test.log')
+transfer_flow_handler = logging.FileHandler('logs/test_full_token_transfer_flow.log')
+console_handler = logging.StreamHandler()
+
+# Set format for all handlers
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s:%(lineno)d: %(message)s')
+service_handler.setFormatter(formatter)
+test_handler.setFormatter(formatter)
+transfer_flow_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Create separate loggers
+logger = logging.getLogger('spl_token.service')
+test_logger = logging.getLogger('spl_token.test')
+transfer_flow_logger = logging.getLogger('spl_token.transfer_flow')
+
+# Configure service logger
+logger.setLevel(logging.DEBUG)
+logger.addHandler(service_handler)
+logger.addHandler(console_handler)
+
+# Configure test logger
+test_logger.setLevel(logging.DEBUG)
+test_logger.addHandler(test_handler)
+test_logger.addHandler(console_handler)
+
+# Configure transfer flow logger - only log errors
+transfer_flow_logger.setLevel(logging.ERROR)
+transfer_flow_handler.setLevel(logging.ERROR)
+transfer_flow_logger.addHandler(transfer_flow_handler)
+transfer_flow_logger.addHandler(console_handler)
+
+# Prevent log propagation to avoid duplicate logs
+logger.propagate = False
+test_logger.propagate = False
+transfer_flow_logger.propagate = False
+
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
 
 from solders.pubkey import Pubkey as PublicKey
-from solders.transaction import Transaction
+from solders.transaction import Transaction, TransactionError
 from solders.commitment_config import CommitmentLevel
 from solders.rpc.config import RpcTransactionConfig as TxOpts
 from solders.system_program import transfer, TransferParams
+from solders.instruction import Instruction, AccountMeta
+from solders.message import Message
+from solders.hash import Hash
 
 from goat_sdk.plugins.spl_token.models import Token, TokenBalance, SolanaNetwork
 from goat_sdk.plugins.spl_token.parameters import (
@@ -16,7 +70,6 @@ from goat_sdk.plugins.spl_token.parameters import (
     GetTokenBalanceByMintAddressParameters,
     TransferTokenByMintAddressParameters,
     ConvertToBaseUnitParameters,
-    ModeConfig,
 )
 from goat_sdk.plugins.spl_token.exceptions import (
     TokenNotFoundError,
@@ -24,14 +77,19 @@ from goat_sdk.plugins.spl_token.exceptions import (
     InsufficientBalanceError,
     TokenTransferError,
 )
+from goat_sdk.plugins.spl_token.utils import (
+    does_account_exist,
+    create_associated_token_account,
+    log_error_details,
+)
 from goat_sdk.plugins.spl_token.monitoring import (
-    trace_operation,
-    with_retries,
     monitor_mode_performance,
+    with_retries,
+    trace_operation,
 )
 
-logger = logging.getLogger(__name__)
-
+# Constants
+TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
 class SplTokenService:
     """Service for interacting with SPL tokens."""
@@ -40,242 +98,389 @@ class SplTokenService:
         self,
         network: SolanaNetwork = SolanaNetwork.MAINNET,
         tokens: List[Token] = None,
-        mode_config: Optional[ModeConfig] = None,
     ):
         """Initialize the SPL token service.
 
         Args:
             network: The Solana network to use
             tokens: List of supported tokens
-            mode_config: Mode-specific configuration
         """
+        logger.info(f"Initializing SPL Token Service on network: {network}")
         self.network = network
         self.tokens = tokens or []
-        self.mode_config = mode_config or ModeConfig()
+        self.wallet_client = None
+        logger.info(f"Loaded {len(self.tokens)} tokens")
+        for token in self.tokens:
+            logger.debug(f"Loaded token: {token.symbol} with mint addresses: {token.mint_addresses}")
 
-    @trace_operation("get_token_info_by_symbol")
     @monitor_mode_performance
+    @with_retries("get_token_info_by_symbol")
+    @trace_operation("get_token_info_by_symbol")
     async def get_token_info_by_symbol(
         self,
         parameters: GetTokenMintAddressBySymbolParameters,
     ) -> Token:
-        """Get token information by symbol.
+        """Get token info by symbol.
 
         Args:
             parameters: Parameters for getting token info
 
         Returns:
-            Token information
-
-        Raises:
-            TokenNotFoundError: If token not found
+            Token info
         """
-        # Find token by symbol
-        token = next(
-            (t for t in self.tokens if t.symbol == parameters.symbol),
-            None,
-        )
-
-        if not token:
+        operation = "get_token_info_by_symbol"
+        logger.info(f"[{operation}] Starting operation")
+        logger.debug(f"[{operation}] Input parameters: {parameters}")
+        logger.debug(f"[{operation}] Current network: {self.network}")
+        logger.debug(f"[{operation}] Service instance: {self}")
+        logger.debug(f"[{operation}] Service instance attributes: {vars(self) if hasattr(self, '__dict__') else str(self)}")
+        
+        # Find matching token
+        logger.debug(f"[{operation}] Step: Finding matching token")
+        matching_token = None
+        
+        for token in self.tokens:
+            logger.debug(f"[{operation}] Checking token: {token}")
+            logger.debug(f"[{operation}] Token attributes: {vars(token) if hasattr(token, '__dict__') else str(token)}")
+            if token.symbol == parameters.symbol:
+                logger.debug(f"[{operation}] Found matching token: {token}")
+                matching_token = token
+                break
+        
+        if not matching_token:
+            logger.error(f"[{operation}] Token not found with symbol: {parameters.symbol}")
+            logger.error(f"[{operation}] Available tokens: {[t.symbol for t in self.tokens]}")
+            logger.error(f"[{operation}] Token list state: {self.tokens}")
+            logger.error(f"[{operation}] Service instance: {self}")
+            logger.error(f"[{operation}] Service instance attributes: {vars(self) if hasattr(self, '__dict__') else str(self)}")
             raise TokenNotFoundError(parameters.symbol)
+                
+        # Check if token exists on current network
+        logger.debug(f"[{operation}] Step: Validating token on network {self.network}")
+        logger.debug(f"[{operation}] Token mint addresses: {matching_token.mint_addresses}")
+        logger.debug(f"[{operation}] Token attributes: {vars(matching_token) if hasattr(matching_token, '__dict__') else str(matching_token)}")
+        if self.network not in matching_token.mint_addresses:
+            logger.error(f"[{operation}] Token {matching_token.symbol} not found on network {self.network}")
+            logger.error(f"[{operation}] Available networks: {list(matching_token.mint_addresses.keys())}")
+            logger.error(f"[{operation}] Token mint addresses: {matching_token.mint_addresses}")
+            logger.error(f"[{operation}] Token attributes: {vars(matching_token) if hasattr(matching_token, '__dict__') else str(matching_token)}")
+            raise TokenNotFoundError(matching_token.symbol)
+        
+        logger.info(f"[{operation}] Successfully found token {matching_token.symbol} on network {self.network}")
+        logger.debug(f"[{operation}] Returning token: {matching_token}")
+        logger.debug(f"[{operation}] Token attributes: {vars(matching_token) if hasattr(matching_token, '__dict__') else str(matching_token)}")
+        return matching_token
 
-        # Validate network support
-        if self.network not in token.mint_addresses:
-            raise TokenNotFoundError(parameters.symbol)
-
-        return token
-
-    @trace_operation("get_token_balance_by_mint_address")
-    @with_retries("get_token_balance_by_mint_address")
     @monitor_mode_performance
+    @with_retries("get_token_balance_by_mint_address")
+    @trace_operation("get_token_balance_by_mint_address")
     async def get_token_balance_by_mint_address(
         self,
-        wallet_client: Any,
+        wallet_client,
         parameters: GetTokenBalanceByMintAddressParameters,
     ) -> TokenBalance:
-        """Get token balance for a wallet address.
+        """Get token balance by mint address.
 
         Args:
             wallet_client: Wallet client
             parameters: Parameters for getting token balance
 
         Returns:
-            Token balance information
-
-        Raises:
-            TokenAccountNotFoundError: If token account not found
+            Token balance
         """
-        # Apply Mode-specific retry logic
-        retry_attempts = 1
-        if parameters.mode_config or self.mode_config:
-            config = parameters.mode_config or self.mode_config
-            if config.retry_attempts:
-                retry_attempts = config.retry_attempts
-
-        # Get account info with retries
-        for attempt in range(retry_attempts):
-            try:
-                # Mock public key for testing
-                if parameters.wallet_address == "mock_public_key":
-                    pubkey = bytes([1] * 32)  # 32 bytes of 1s for testing
-                else:
-                    pubkey = bytes.fromhex(parameters.wallet_address.replace("0x", ""))
-
-                account_info = await wallet_client.connection.get_account_info(
-                    PublicKey(pubkey),
-                    commitment=CommitmentLevel.Confirmed,
-                )
-                if account_info.value:
-                    break
-                if attempt == retry_attempts - 1:
-                    raise TokenAccountNotFoundError(
-                        account_type="Token",
-                        address=parameters.wallet_address
-                    )
-                logger.debug(f"Retry {attempt + 1} for account info")
-            except Exception as e:
-                if attempt == retry_attempts - 1:
-                    raise TokenAccountNotFoundError(
-                        account_type="Token",
-                        address=parameters.wallet_address
-                    )
-                logger.debug(f"Retry {attempt + 1} after error: {str(e)}")
-
-        # Get token
-        token = next(
-            (t for t in self.tokens if t.mint_addresses.get(self.network) == parameters.mint_address),
-            None,
-        )
-        if not token:
-            raise TokenNotFoundError(parameters.mint_address)
-
-        # Get balance
-        balance = account_info.value.lamports
-
-        # Calculate UI amount
-        ui_amount = balance / (10 ** token.decimals)
-
-        return TokenBalance(
-            amount=balance,
-            decimals=token.decimals,
-            ui_amount=ui_amount
-        )
-
-    @trace_operation("transfer_token_by_mint_address")
-    @with_retries("transfer_token_by_mint_address", max_attempts=5)
-    @monitor_mode_performance
-    async def transfer_token_by_mint_address(
-        self,
-        wallet_client: Any,
-        parameters: TransferTokenByMintAddressParameters,
-    ) -> str:
-        """Transfer tokens from one address to another.
-
-        Args:
-            wallet_client: Wallet client
-            parameters: Parameters for token transfer
-
-        Returns:
-            Transaction signature
-
-        Raises:
-            TokenTransferError: If transfer fails
-            InsufficientBalanceError: If insufficient balance
-        """
-        # Apply Mode-specific validations
-        if parameters.mode_config or self.mode_config:
-            config = parameters.mode_config or self.mode_config
-            
-            # Get token for minimum transfer validation
+        operation = "get_token_balance_by_mint_address"
+        logger.info(f"[{operation}] Starting operation")
+        logger.debug(f"[{operation}] Input parameters: {parameters}")
+        logger.debug(f"[{operation}] Wallet client: {wallet_client}")
+        logger.debug(f"[{operation}] Wallet client attributes: {vars(wallet_client) if hasattr(wallet_client, '__dict__') else str(wallet_client)}")
+        logger.debug(f"[{operation}] Current network: {self.network}")
+        logger.debug(f"[{operation}] Service instance: {self}")
+        logger.debug(f"[{operation}] Service instance attributes: {vars(self) if hasattr(self, '__dict__') else str(self)}")
+        
+        try:
+            # Find token info
+            logger.debug(f"[{operation}] Step: Finding token info")
             token = next(
                 (t for t in self.tokens if t.mint_addresses.get(self.network) == parameters.mint_address),
                 None,
             )
-            if token and config.min_transfer_validation:
-                mode_config = getattr(token, 'mode_config', {}) or {}
-                min_transfer = mode_config.get("min_transfer", 0)
-                if parameters.amount < min_transfer * (10 ** token.decimals):
-                    raise TokenTransferError(
-                        f"Amount below minimum transfer of {min_transfer} {token.symbol}"
-                    )
-
-        # Check balance
-        balance = await self.get_token_balance_by_mint_address(
-            wallet_client,
-            GetTokenBalanceByMintAddressParameters(
-                wallet_address=wallet_client.public_key,
-                mint_address=parameters.mint_address,
-                mode_config=parameters.mode_config,
-            ),
-        )
-
-        if balance.amount < parameters.amount:
-            raise InsufficientBalanceError(
-                required=parameters.amount,
-                available=balance.amount
-            )
-
-        # Create transfer transaction
-        try:
-            # Convert public keys to bytes
-            from_pubkey = bytes.fromhex(wallet_client.public_key.replace("0x", ""))
-            to_pubkey = bytes.fromhex(parameters.to.replace("0x", ""))
-
-            # Create transfer instruction
-            transfer_ix = transfer(
-                TransferParams(
-                    from_pubkey=PublicKey(from_pubkey),
-                    to_pubkey=PublicKey(to_pubkey),
-                    lamports=parameters.amount,
+            logger.debug(f"[{operation}] Found token: {token}")
+            if token:
+                logger.debug(f"[{operation}] Token attributes: {vars(token) if hasattr(token, '__dict__') else str(token)}")
+            
+            if not token:
+                logger.error(f"[{operation}] Token not found for mint address: {parameters.mint_address}")
+                logger.error(f"[{operation}] Available tokens: {[t.symbol for t in self.tokens]}")
+                logger.error(f"[{operation}] Token list state: {self.tokens}")
+                raise TokenAccountNotFoundError(
+                    account_type="Token",
+                    address=parameters.wallet_address
                 )
-            )
 
-            # For testing purposes, we'll just return the mock signature
-            if hasattr(wallet_client, 'send_and_confirm_transaction'):
-                signature = await wallet_client.send_and_confirm_transaction(
-                    transfer_ix,
+            # Find associated token account
+            logger.debug(f"[{operation}] Step: Finding associated token account")
+            logger.debug(f"[{operation}] Wallet address: {parameters.wallet_address}")
+            logger.debug(f"[{operation}] Mint address: {parameters.mint_address}")
+            token_account = await does_account_exist(
+                await wallet_client.get_connection(),
+                PublicKey(b58decode(parameters.wallet_address)),
+                PublicKey(b58decode(parameters.mint_address)),
+                parameters.mode_config
+            )
+            logger.debug(f"[{operation}] Token account lookup result: {token_account}")
+            
+            if not token_account:
+                logger.error(f"[{operation}] Token account not found for address: {parameters.wallet_address}")
+                logger.error(f"[{operation}] Mint address: {parameters.mint_address}")
+                logger.error(f"[{operation}] Wallet client: {wallet_client}")
+                raise TokenAccountNotFoundError(
+                    account_type="Token",
+                    address=parameters.wallet_address
                 )
-                return signature
-            else:
-                raise TokenTransferError("Wallet client does not support send_and_confirm_transaction")
+
+            # Get token account balance
+            logger.debug(f"[{operation}] Step: Getting token account balance")
+            logger.debug(f"[{operation}] Token account: {token_account}")
+            connection = await wallet_client.get_connection()
+            balance = await connection.get_token_account_balance(
+                PublicKey(b58decode(token_account))
+            )
+            logger.debug(f"[{operation}] Balance response: {balance}")
+            
+            # Convert balance to UI amount
+            logger.debug(f"[{operation}] Step: Converting balance to UI amount")
+            ui_amount = float(balance["value"]["uiAmount"])
+            logger.debug(f"[{operation}] UI amount: {ui_amount}")
+            
+            logger.info(f"[{operation}] Successfully retrieved token balance")
+            logger.debug(f"[{operation}] Returning balance: {ui_amount}")
+            return ui_amount
+            
         except Exception as e:
-            raise TokenTransferError(str(e))
+            log_error_details(operation, e, "getting token balance")
+            raise
 
-    def convert_to_base_unit(
+    @monitor_mode_performance
+    @with_retries("transfer_token_by_mint_address")
+    @trace_operation("transfer_token_by_mint_address")
+    async def transfer_token_by_mint_address(
+        self,
+        wallet_client,
+        parameters: TransferTokenByMintAddressParameters,
+    ) -> Transaction:
+        """Transfer tokens by mint address.
+
+        Args:
+            wallet_client: Wallet client
+            parameters: Parameters for transferring tokens
+
+        Returns:
+            Transaction
+        """
+        operation = "transfer_token_by_mint_address"
+        logger.info(f"[{operation}] Starting operation")
+        logger.debug(f"[{operation}] Input parameters: {parameters}")
+        logger.debug(f"[{operation}] Wallet client: {wallet_client}")
+        logger.debug(f"[{operation}] Current network: {self.network}")
+        
+        try:
+            # Get source wallet address
+            logger.debug(f"[{operation}] Step: Getting source wallet address")
+            source_address = await wallet_client.get_wallet_address()
+            logger.debug(f"[{operation}] Source address: {source_address}")
+            
+            # Check source token account exists
+            logger.debug(f"[{operation}] Step: Checking source token account")
+            source_token_account = await does_account_exist(
+                wallet_client.get_connection(),
+                PublicKey(b58decode(source_address)),
+                PublicKey(b58decode(parameters.mint_address)),
+                parameters.mode_config
+            )
+            logger.debug(f"[{operation}] Source token account: {source_token_account}")
+            
+            if not source_token_account:
+                logger.error(f"[{operation}] Source token account not found")
+                raise TokenAccountNotFoundError(
+                    account_type="Source Token",
+                    address=source_address
+                )
+                
+            # Check destination token account exists
+            logger.debug(f"[{operation}] Step: Checking destination token account")
+            destination_token_account = await does_account_exist(
+                wallet_client.get_connection(),
+                PublicKey(b58decode(parameters.to)),
+                PublicKey(b58decode(parameters.mint_address)),
+                parameters.mode_config
+            )
+            logger.debug(f"[{operation}] Destination token account: {destination_token_account}")
+            
+            if not destination_token_account:
+                logger.debug(f"[{operation}] Creating destination token account")
+                # Create destination token account
+                create_account_tx = await create_associated_token_account(
+                    parameters.to,
+                    parameters.mint_address,
+                    source_address
+                )
+                logger.debug(f"[{operation}] Create account transaction: {create_account_tx}")
+                
+                # Sign and send transaction
+                logger.debug(f"[{operation}] Signing and sending create account transaction")
+                connection = await wallet_client.get_connection()
+                blockhash = await connection.get_latest_blockhash()
+                create_account_tx.recent_blockhash = blockhash[0]
+                create_account_tx.sign(wallet_client.keypair)
+                
+                try:
+                    await connection.send_transaction(
+                        create_account_tx,
+                        [wallet_client.keypair],
+                        opts=TxOpts(skip_preflight=True)
+                    )
+                except Exception as e:
+                    logger.error(f"[{operation}] Failed to create destination token account")
+                    log_error_details(operation, e, "creating destination token account")
+                    raise TokenTransferError("Failed to create destination token account")
+                
+                # Get created account address
+                destination_token_account = await does_account_exist(
+                    connection,
+                    PublicKey(b58decode(parameters.to)),
+                    PublicKey(b58decode(parameters.mint_address)),
+                    parameters.mode_config
+                )
+                logger.debug(f"[{operation}] Created destination token account: {destination_token_account}")
+
+            # Check source account balance
+            logger.debug(f"[{operation}] Step: Checking source account balance")
+            connection = await wallet_client.get_connection()
+            balance = await connection.get_token_account_balance(
+                PublicKey(b58decode(source_token_account))
+            )
+            logger.debug(f"[{operation}] Source balance: {balance}")
+            
+            current_balance = int(balance["value"]["amount"])
+            if current_balance < parameters.amount:
+                logger.error(f"[{operation}] Insufficient balance")
+                logger.error(f"[{operation}] Current balance: {current_balance}")
+                logger.error(f"[{operation}] Requested amount: {parameters.amount}")
+                
+                # Get token symbol
+                token = next(
+                    (t for t in self.tokens if t.mint_addresses.get(self.network) == parameters.mint_address),
+                    None
+                )
+                token_symbol = token.symbol if token else "Unknown"
+                
+                raise InsufficientBalanceError(
+                    required=parameters.amount,
+                    available=current_balance,
+                    token_symbol=token_symbol
+                )
+            
+            # Create transfer instruction
+            logger.debug(f"[{operation}] Step: Creating transfer instruction")
+            transfer_ix = Instruction(
+                program_id=PublicKey(b58decode(TOKEN_PROGRAM_ID)),
+                accounts=[
+                    AccountMeta(
+                        pubkey=PublicKey(b58decode(source_token_account)),
+                        is_signer=False,
+                        is_writable=True
+                    ),
+                    AccountMeta(
+                        pubkey=PublicKey(b58decode(destination_token_account)),
+                        is_signer=False,
+                        is_writable=True
+                    ),
+                    AccountMeta(
+                        pubkey=PublicKey(b58decode(source_address)),
+                        is_signer=True,
+                        is_writable=False
+                    )
+                ],
+                data=bytes([3]) + parameters.amount.to_bytes(8, "little")
+            )
+            logger.debug(f"[{operation}] Transfer instruction: {transfer_ix}")
+            
+            # Get recent blockhash
+            logger.debug(f"[{operation}] Step: Getting recent blockhash")
+            blockhash_response = await connection.get_latest_blockhash()
+            logger.debug(f"[{operation}] Blockhash response: {blockhash_response}")
+
+            # Create transaction
+            logger.debug(f"[{operation}] Step: Creating transaction")
+            message = Message.new_with_blockhash(
+                [transfer_ix],
+                wallet_client.keypair.pubkey(),
+                Hash(b58decode(blockhash_response[0]))
+            )
+
+            transaction = Transaction.new_unsigned(message)
+            transaction.sign([wallet_client.keypair], Hash(b58decode(blockhash_response[0])))
+
+            logger.info(f"[{operation}] Successfully created transfer transaction")
+            logger.debug(f"[{operation}] Returning transaction: {transaction}")
+            return transaction
+            
+        except Exception as e:
+            log_error_details(operation, e, "transferring tokens")
+            raise
+
+    @monitor_mode_performance
+    @with_retries("convert_to_base_unit")
+    @trace_operation("convert_to_base_unit")
+    async def convert_to_base_unit(
         self,
         parameters: ConvertToBaseUnitParameters,
     ) -> int:
-        """Convert token amount to base units.
-
-        Args:
-            parameters: Parameters for conversion
-
-        Returns:
-            Amount in base units
-        """
+        """Convert token amount to base units."""
+        operation = "convert_to_base_unit"
+        logger.info(f"[{operation}] Starting operation")
+        logger.debug(f"[{operation}] Input parameters: {parameters}")
+        
         try:
-            decimal_amount = Decimal(str(parameters.amount))
-            base_units = int(decimal_amount * Decimal(10 ** parameters.decimals))
+            # Find token info
+            token = next(
+                (t for t in self.tokens if t.mint_addresses.get(self.network) == parameters.mint_address),
+                None
+            )
+            
+            if not token:
+                logger.error(f"[{operation}] Token not found for mint address: {parameters.mint_address}")
+                raise TokenNotFoundError(parameters.mint_address)
+            
+            # Convert to base units
+            base_units = int(parameters.amount * (10 ** token.decimals))
+            logger.debug(f"[{operation}] Converted {parameters.amount} to {base_units} base units")
+            
             return base_units
+            
         except Exception as e:
-            raise ValueError(f"Failed to convert amount: {str(e)}")
+            log_error_details(operation, e, "converting to base units")
+            raise
 
-    @trace_operation("get_token_mint_address_by_symbol")
-    @monitor_mode_performance
-    async def get_token_mint_address_by_symbol(
-        self,
-        parameters: GetTokenMintAddressBySymbolParameters,
-    ) -> str:
-        """Get token mint address by symbol.
+    async def cleanup(self) -> None:
+        """Clean up service resources."""
+        operation = "cleanup"
+        logger.info(f"[{operation}] Starting cleanup")
+        logger.debug(f"[{operation}] Service instance: {self}")
+        logger.debug(f"[{operation}] Current network: {self.network}")
+        logger.debug(f"[{operation}] Token list state: {self.tokens}")
 
-        Args:
-            parameters: Parameters for getting token mint address
-
-        Returns:
-            Token mint address
-
-        Raises:
-            TokenNotFoundError: If token not found
-        """
-        token = await self.get_token_info_by_symbol(parameters)
-        return token.mint_addresses[self.network]
+    async def _get_token_symbol_by_mint_address(self, mint_address: str) -> str:
+        """Get token symbol by mint address."""
+        operation = "_get_token_symbol_by_mint_address"
+        logger.debug(f"[{operation}] Looking up token symbol for mint address: {mint_address}")
+        for token in self.tokens:
+            logger.debug(f"[{operation}] Checking token: {token}")
+            logger.debug(f"[{operation}] Token mint addresses: {token.mint_addresses}")
+            if mint_address in token.mint_addresses.values():
+                logger.debug(f"[{operation}] Found token symbol: {token.symbol}")
+                return token.symbol
+        logger.error(f"[{operation}] Token not found with mint address: {mint_address}")
+        logger.error(f"[{operation}] Available tokens: {[t.symbol for t in self.tokens]}")
+        logger.error(f"[{operation}] Token list state: {self.tokens}")
+        raise TokenNotFoundError(f"Token not found with mint address: {mint_address}")

@@ -1,0 +1,22 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include requirements.txt
+include requirements-dev.txt
+include pyproject.toml
+
+recursive-include goat_sdk *.py
+recursive-include goat_sdk/docs *.rst *.md
+recursive-include examples *.py
+
+exclude .env*
+exclude .git*
+exclude .pre-commit-config.yaml
+exclude .python-version
+exclude .windsurfrules
+exclude extra/*
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]
+recursive-exclude tests *
+recursive-exclude extra * 

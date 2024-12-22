@@ -14,6 +14,16 @@ class ModeConfig(BaseModel):
     min_transfer_validation: bool = Field(default=True, description="Validate minimum transfer amounts")
 
 
+class GetTokenInfoBySymbolParameters(BaseModel):
+    """Parameters for getting token info by symbol."""
+
+    symbol: str = Field(..., description="Token symbol")
+    mode_config: Optional[ModeConfig] = Field(
+        default=None,
+        description="Mode-specific configuration",
+    )
+
+
 class GetTokenMintAddressBySymbolParameters(BaseModel):
     """Parameters for getting token mint address by symbol."""
 
@@ -29,6 +39,7 @@ class GetTokenBalanceByMintAddressParameters(BaseModel):
 
     wallet_address: str = Field(..., description="Wallet address")
     mint_address: str = Field(..., description="Token mint address")
+    token_symbol: str = Field(..., description="Token symbol")
     mode_config: Optional[ModeConfig] = Field(
         default=None,
         description="Mode-specific configuration",
@@ -52,6 +63,7 @@ class ConvertToBaseUnitParameters(BaseModel):
 
     amount: float = Field(..., description="Amount to convert")
     decimals: int = Field(..., description="Token decimals")
+    mint_address: str = Field(..., description="Token mint address")
     mode_config: Optional[ModeConfig] = Field(
         default=None,
         description="Mode-specific configuration",

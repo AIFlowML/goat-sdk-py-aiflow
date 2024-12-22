@@ -12,6 +12,13 @@ class SolanaNetwork(str, Enum):
     TESTNET = "testnet"
 
 
+class TokenType(str, Enum):
+    """Token types."""
+    FUNGIBLE = "fungible"
+    NON_FUNGIBLE = "non-fungible"
+    SEMI_FUNGIBLE = "semi-fungible"
+
+
 class Token(BaseModel):
     """
     Token information model.
@@ -22,6 +29,7 @@ class Token(BaseModel):
         decimals: Number of decimal places
         mint_addresses: Mapping of network to mint address
         mode_config: Optional Mode-specific configuration
+        token_type: Type of token (fungible, non-fungible, etc.)
     """
     symbol: str = Field(..., description="Token symbol")
     name: str = Field(..., description="Token name")
@@ -30,6 +38,10 @@ class Token(BaseModel):
     mode_config: Optional[Dict[str, Any]] = Field(
         None,
         description="Mode-specific configuration for the token"
+    )
+    token_type: TokenType = Field(
+        TokenType.FUNGIBLE,
+        description="Type of token"
     )
 
 
@@ -45,3 +57,22 @@ class TokenBalance(BaseModel):
     amount: int = Field(..., description="Raw token amount")
     decimals: int = Field(..., description="Number of decimal places")
     ui_amount: float = Field(..., description="Human-readable token amount")
+
+
+class TransferParams(BaseModel):
+    """
+    Parameters for token transfer operations.
+
+    Attributes:
+        to_address: Destination wallet address
+        mint_address: Token mint address
+        amount: Amount to transfer in base units
+        mode_config: Optional Mode-specific configuration
+    """
+    to_address: str = Field(..., description="Destination wallet address")
+    mint_address: str = Field(..., description="Token mint address")
+    amount: int = Field(..., description="Amount to transfer in base units")
+    mode_config: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Mode-specific configuration for the transfer"
+    )

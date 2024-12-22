@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field, HttpUrl
 class HyperliquidConfig(BaseModel):
     """Configuration for Hyperliquid plugin."""
 
+    # Network Settings
+    testnet: bool = Field(
+        default=False,
+        description="Whether to use testnet"
+    )
+
     # API URLs
     api_url: HttpUrl = Field(
         default="https://api.hyperliquid.xyz",

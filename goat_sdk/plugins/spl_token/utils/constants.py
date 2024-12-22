@@ -1,0 +1,9 @@
+"""Constants for SPL Token operations."""
+
+# Program IDs
+TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+
+# Well-known token mint addresses
+USDC_MINT_ADDRESS = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+WSOL_MINT_ADDRESS = "So11111111111111111111111111111111111111112" 

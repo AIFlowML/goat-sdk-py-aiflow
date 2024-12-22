@@ -1,0 +1,484 @@
+============================= test session starts ==============================
+collecting ... collected 3 items
+
+tests/plugins/spl_token/test_spl_token_service_integration.py::test_full_token_transfer_flow 2024-12-22 08:13:24,540 [INFO] spl_token.service:95: Initializing SPL Token Service on network: SolanaNetwork.DEVNET
+2024-12-22 08:13:24,540 [INFO] spl_token.service:98: Loaded 2 tokens
+2024-12-22 08:13:24,540 [DEBUG] spl_token.service:100: Loaded token: USDC with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}
+2024-12-22 08:13:24,540 [DEBUG] spl_token.service:100: Loaded token: SOL with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}
+2024-12-22 08:13:24,544 [INFO] spl_token.service:122: [get_token_info_by_symbol] Starting operation
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:123: [get_token_info_by_symbol] Input parameters: symbol='USDC' mode_config=None
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:124: [get_token_info_by_symbol] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:125: [get_token_info_by_symbol] Available tokens: ['USDC', 'SOL']
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:126: [get_token_info_by_symbol] Token list length: 2
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:127: [get_token_info_by_symbol] Token list state: [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:128: [get_token_info_by_symbol] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:129: [get_token_info_by_symbol] Service instance attributes: {'network': <SolanaNetwork.DEVNET: 'devnet'>, 'tokens': [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]}
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:132: [get_token_info_by_symbol] Step: Finding token with symbol 'USDC'
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:135: [get_token_info_by_symbol] Checking token: Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:136: [get_token_info_by_symbol] Token attributes: {'name': 'USD Coin', 'symbol': 'USDC', 'decimals': 6, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:138: [get_token_info_by_symbol] Found matching token: Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:151: [get_token_info_by_symbol] Step: Validating token on network SolanaNetwork.DEVNET
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:152: [get_token_info_by_symbol] Token mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:153: [get_token_info_by_symbol] Token attributes: {'name': 'USD Coin', 'symbol': 'USDC', 'decimals': 6, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:24,544 [INFO] spl_token.service:161: [get_token_info_by_symbol] Successfully found token USDC on network SolanaNetwork.DEVNET
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:162: [get_token_info_by_symbol] Returning token: Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:163: [get_token_info_by_symbol] Token attributes: {'name': 'USD Coin', 'symbol': 'USDC', 'decimals': 6, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:24,544 [INFO] spl_token.service:188: [get_token_balance_by_mint_address] Starting operation
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:189: [get_token_balance_by_mint_address] Input parameters: wallet_address='3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' token_symbol='USDC' mode_config=None
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:190: [get_token_balance_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:24,544 [DEBUG] spl_token.service:191: [get_token_balance_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, '__str__': <MagicMock name='mock.__str__' id='4594000272'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4386404112'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [237, 108, 97, 126, 248, 135, 42, 23, 114, 52, 96, 15, 250, 174, 190, 118, 15, 184, 113, 141, 103, 73, 163, 211, 118, 128, 34, 115, 255, 164, 85, 152],
+            public: PublicKey(CompressedEdwardsY: [43, 141, 229, 197, 67, 224, 80, 70, 73, 132, 22, 162, 184, 51, 72, 214, 194, 0, 241, 32, 83, 130, 195, 228, 156, 42, 117, 150, 31, 104, 16, 241]), EdwardsPoint{
+            	X: FieldElement51([431562352376538, 2225712023126855, 627170955897041, 2000407152409523, 1103619501300083]),
+            	Y: FieldElement51([1769492766601305, 1050099189644053, 1027574284502562, 1778915903515228, 750384833880819]),
+            	Z: FieldElement51([1388425950284981, 1282135005432839, 1926948386005873, 2168086006838740, 1044394820824806]),
+            	T: FieldElement51([1517089595784624, 1123458539830969, 612208246464105, 1087059849579784, 130690856920407])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594000272'>}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:192: [get_token_balance_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:193: [get_token_balance_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:194: [get_token_balance_by_mint_address] Service instance attributes: {'network': <SolanaNetwork.DEVNET: 'devnet'>, 'tokens': [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:197: [get_token_balance_by_mint_address] Step: Finding token info
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:202: [get_token_balance_by_mint_address] Found token: Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:204: [get_token_balance_by_mint_address] Token attributes: {'name': 'USD Coin', 'symbol': 'USDC', 'decimals': 6, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:216: [get_token_balance_by_mint_address] Step: Finding associated token account
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:217: [get_token_balance_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:218: [get_token_balance_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:224: [get_token_balance_by_mint_address] Token account lookup result: 3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:237: [get_token_balance_by_mint_address] Step: Getting token account balance
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:238: [get_token_balance_by_mint_address] Token account: 3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:240: [get_token_balance_by_mint_address] Getting connection
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:242: [get_token_balance_by_mint_address] Connection: <AsyncMock name='mock.connection' id='4409651472'>
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:243: [get_token_balance_by_mint_address] Connection attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': <AsyncMock id='4324538256'>, '_mock_name': 'connection', '_mock_new_name': 'connection', '_mock_new_parent': <AsyncMock id='4324538256'>, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_token_account_balance': <AsyncMock name='mock.connection.get_token_account_balance' id='4593965840'>, 'get_account_info': <AsyncMock name='mock.connection.get_account_info' id='4593857424'>, 'send_transaction': <AsyncMock name='mock.connection.send_transaction' id='4593896464'>, 'get_latest_blockhash': <AsyncMock name='mock.connection.get_latest_blockhash' id='4593994896'>, '__str__': <MagicMock name='mock.connection.__str__' id='4594006800'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4589669712'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_token_account_balance': <AsyncMock name='mock.connection.get_token_account_balance' id='4593965840'>, 'get_account_info': <AsyncMock name='mock.connection.get_account_info' id='4593857424'>, 'send_transaction': <AsyncMock name='mock.connection.send_transaction' id='4593896464'>, 'get_latest_blockhash': <AsyncMock name='mock.connection.get_latest_blockhash' id='4593994896'>, '__str__': <MagicMock name='mock.connection.__str__' id='4594006800'>}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:245: [get_token_balance_by_mint_address] Getting token account balance
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:249: [get_token_balance_by_mint_address] Balance response: <MagicMock id='4593942224'>
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:253: [get_token_balance_by_mint_address] Balance value: {'amount': '2000000', 'decimals': 6, 'uiAmount': 2.0, 'uiAmountString': '2'}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:276: [get_token_balance_by_mint_address] Creating TokenBalance response
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:277: [get_token_balance_by_mint_address] Token symbol: USDC
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:278: [get_token_balance_by_mint_address] Amount: 2.0
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:279: [get_token_balance_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:280: [get_token_balance_by_mint_address] Token account: 3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3
+2024-12-22 08:13:24,545 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, '__str__': <MagicMock name='mock.__str__' id='4594000272'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.get_connection(),
+ call.connection.__str__(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+)),
+ call.__str__()], 'method_calls': [call.get_connection(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+))], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4386404112'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [237, 108, 97, 126, 248, 135, 42, 23, 114, 52, 96, 15, 250, 174, 190, 118, 15, 184, 113, 141, 103, 73, 163, 211, 118, 128, 34, 115, 255, 164, 85, 152],
+            public: PublicKey(CompressedEdwardsY: [43, 141, 229, 197, 67, 224, 80, 70, 73, 132, 22, 162, 184, 51, 72, 214, 194, 0, 241, 32, 83, 130, 195, 228, 156, 42, 117, 150, 31, 104, 16, 241]), EdwardsPoint{
+            	X: FieldElement51([431562352376538, 2225712023126855, 627170955897041, 2000407152409523, 1103619501300083]),
+            	Y: FieldElement51([1769492766601305, 1050099189644053, 1027574284502562, 1778915903515228, 750384833880819]),
+            	Z: FieldElement51([1388425950284981, 1282135005432839, 1926948386005873, 2168086006838740, 1044394820824806]),
+            	T: FieldElement51([1517089595784624, 1123458539830969, 612208246464105, 1087059849579784, 130690856920407])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594000272'>}
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:24,545 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:24,546 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:24,546 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:25,547 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, '__str__': <MagicMock name='mock.__str__' id='4594000272'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.get_connection(),
+ call.connection.__str__(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+)),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__()], 'method_calls': [call.get_connection(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+)),
+ call.get_address()], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4386404112'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [237, 108, 97, 126, 248, 135, 42, 23, 114, 52, 96, 15, 250, 174, 190, 118, 15, 184, 113, 141, 103, 73, 163, 211, 118, 128, 34, 115, 255, 164, 85, 152],
+            public: PublicKey(CompressedEdwardsY: [43, 141, 229, 197, 67, 224, 80, 70, 73, 132, 22, 162, 184, 51, 72, 214, 194, 0, 241, 32, 83, 130, 195, 228, 156, 42, 117, 150, 31, 104, 16, 241]), EdwardsPoint{
+            	X: FieldElement51([431562352376538, 2225712023126855, 627170955897041, 2000407152409523, 1103619501300083]),
+            	Y: FieldElement51([1769492766601305, 1050099189644053, 1027574284502562, 1778915903515228, 750384833880819]),
+            	Z: FieldElement51([1388425950284981, 1282135005432839, 1926948386005873, 2168086006838740, 1044394820824806]),
+            	T: FieldElement51([1517089595784624, 1123458539830969, 612208246464105, 1087059849579784, 130690856920407])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594000272'>}
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:25,548 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:25,549 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:25,549 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:25,549 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:25,549 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:27,551 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:27,551 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:27,551 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, '__str__': <MagicMock name='mock.__str__' id='4594000272'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.get_connection(),
+ call.connection.__str__(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+)),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__()], 'method_calls': [call.get_connection(),
+ call.connection.get_token_account_balance(Pubkey(
+    3uetDDizgTtadDHZzyy9BqxrjQcozMEkxzbKhfZF4tG3,
+)),
+ call.get_address(),
+ call.get_address()], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4386404112'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4577243472'>, 'get_connection': <MagicMock name='mock.get_connection' id='4409651728'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4362370768'>, 'connection': <AsyncMock name='mock.connection' id='4409651472'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [237, 108, 97, 126, 248, 135, 42, 23, 114, 52, 96, 15, 250, 174, 190, 118, 15, 184, 113, 141, 103, 73, 163, 211, 118, 128, 34, 115, 255, 164, 85, 152],
+            public: PublicKey(CompressedEdwardsY: [43, 141, 229, 197, 67, 224, 80, 70, 73, 132, 22, 162, 184, 51, 72, 214, 194, 0, 241, 32, 83, 130, 195, 228, 156, 42, 117, 150, 31, 104, 16, 241]), EdwardsPoint{
+            	X: FieldElement51([431562352376538, 2225712023126855, 627170955897041, 2000407152409523, 1103619501300083]),
+            	Y: FieldElement51([1769492766601305, 1050099189644053, 1027574284502562, 1778915903515228, 750384833880819]),
+            	Z: FieldElement51([1388425950284981, 1282135005432839, 1926948386005873, 2168086006838740, 1044394820824806]),
+            	T: FieldElement51([1517089595784624, 1123458539830969, 612208246464105, 1087059849579784, 130690856920407])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594000272'>}
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:27,552 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: 3w22WA5FRQonvDvC3PtBW3gWJeXfcHW9kXrosepJptD6
+2024-12-22 08:13:27,552 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:27,553 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4324538256'>
+2024-12-22 08:13:27,553 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:27,553 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d01e10>
+FAILED
+tests/plugins/spl_token/test_spl_token_service_integration.py::test_transfer_error_handling 2024-12-22 08:13:27,629 [INFO] spl_token.service:95: Initializing SPL Token Service on network: SolanaNetwork.DEVNET
+2024-12-22 08:13:27,629 [INFO] spl_token.service:98: Loaded 2 tokens
+2024-12-22 08:13:27,629 [DEBUG] spl_token.service:100: Loaded token: USDC with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}
+2024-12-22 08:13:27,629 [DEBUG] spl_token.service:100: Loaded token: SOL with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}
+2024-12-22 08:13:27,632 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:27,632 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: invalid_mint
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:338: [transfer_token_by_mint_address] Invalid mint address: invalid_mint
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:339: [transfer_token_by_mint_address] Error type: <class 'ValueError'>
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:340: [transfer_token_by_mint_address] Error details: Invalid character <l>
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.InvalidTokenAddressError'>
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Invalid token address: invalid_mint
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:27,632 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:28,634 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:28,635 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:28,635 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:28,635 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(), call.__str__(), call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:28,636 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:28,636 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:28,636 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:28,636 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: invalid_mint
+2024-12-22 08:13:28,636 [ERROR] spl_token.service:338: [transfer_token_by_mint_address] Invalid mint address: invalid_mint
+2024-12-22 08:13:28,636 [ERROR] spl_token.service:339: [transfer_token_by_mint_address] Error type: <class 'ValueError'>
+2024-12-22 08:13:28,636 [ERROR] spl_token.service:340: [transfer_token_by_mint_address] Error details: Invalid character <l>
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.InvalidTokenAddressError'>
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Invalid token address: invalid_mint
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:28,637 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:30,638 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:30,639 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:30,639 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:30,639 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(), call.__str__(), call.__str__(), call.__str__(), call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:30,639 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:30,640 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:30,640 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:30,640 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: invalid_mint
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:338: [transfer_token_by_mint_address] Invalid mint address: invalid_mint
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:339: [transfer_token_by_mint_address] Error type: <class 'ValueError'>
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:340: [transfer_token_by_mint_address] Error details: Invalid character <l>
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.InvalidTokenAddressError'>
+2024-12-22 08:13:30,640 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Invalid token address: invalid_mint
+2024-12-22 08:13:30,641 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='invalid_mint' amount=1000000 mode_config=None
+2024-12-22 08:13:30,641 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:30,641 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:30,641 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:30,642 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__()], 'method_calls': [], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:30,642 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:30,643 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:30,643 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:30,643 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:30,643 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:30,643 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:30,644 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:31,646 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__()], 'method_calls': [call.get_address()], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:31,646 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:31,647 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:31,647 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:31,648 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:31,648 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:31,648 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:33,649 [INFO] spl_token.service:324: [transfer_token_by_mint_address] Starting operation
+2024-12-22 08:13:33,649 [DEBUG] spl_token.service:325: [transfer_token_by_mint_address] Input parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:326: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:327: [transfer_token_by_mint_address] Wallet client attributes: {'_mock_return_value': sentinel.DEFAULT, '_mock_parent': None, '_mock_name': None, '_mock_new_name': '', '_mock_new_parent': None, '_mock_sealed': False, '_spec_class': None, '_spec_set': None, '_spec_signature': None, '_mock_methods': None, '_spec_asyncs': [], '_mock_children': {'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, '__str__': <MagicMock name='mock.__str__' id='4594621456'>}, '_mock_wraps': None, '_mock_delegate': None, '_mock_called': False, '_mock_call_args': None, '_mock_call_count': 0, '_mock_call_args_list': [], '_mock_mock_calls': [call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__(),
+ call.get_address(),
+ call.__str__(),
+ call.__str__()], 'method_calls': [call.get_address(), call.get_address()], '_mock_unsafe': False, '_mock_side_effect': None, '_is_coroutine': <object object at 0x1007c4d50>, '_mock_await_count': 0, '_mock_await_args': None, '_mock_await_args_list': [], '__code__': <NonCallableMock spec_set='code' id='4594071248'>, '__name__': 'AsyncMock', '__defaults__': (), '__kwdefaults__': {}, '__annotations__': None, 'get_address': <AsyncMock name='mock.get_address' id='4592054160'>, 'get_connection': <MagicMock name='mock.get_connection' id='4594391248'>, 'send_and_confirm_transaction': <AsyncMock name='mock.send_and_confirm_transaction' id='4594396240'>, 'connection': <AsyncMock name='mock.connection' id='4595144912'>, 'keypair': Keypair(
+    Keypair(
+        Keypair {
+            secret: SecretKey: [37, 108, 138, 234, 248, 75, 146, 70, 102, 152, 234, 115, 108, 153, 238, 13, 166, 164, 74, 87, 103, 170, 73, 181, 85, 127, 107, 36, 22, 216, 93, 73],
+            public: PublicKey(CompressedEdwardsY: [246, 248, 207, 208, 25, 32, 171, 79, 100, 119, 89, 58, 140, 52, 211, 115, 45, 56, 65, 192, 45, 236, 2, 48, 113, 140, 107, 79, 124, 225, 205, 149]), EdwardsPoint{
+            	X: FieldElement51([589641098850520, 1699458379548779, 1219666935501897, 541477051774589, 174075324211116]),
+            	Y: FieldElement51([958364753293498, 2228634397925204, 1018439716547275, 2069727152880482, 1600131352561373]),
+            	Z: FieldElement51([1036188391287219, 129008683493626, 67660120053044, 538236382065127, 1458165843602720]),
+            	T: FieldElement51([880583107298278, 2181664197444382, 272663657372924, 581809221649013, 502277803253847])
+            }),
+        },
+    ),
+), '__str__': <MagicMock name='mock.__str__' id='4594621456'>}
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:328: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:329: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:332: [transfer_token_by_mint_address] Step: Validating mint address
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:334: [transfer_token_by_mint_address] Creating PublicKey from mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:336: [transfer_token_by_mint_address] Created mint pubkey: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:344: [transfer_token_by_mint_address] Step: Getting source token account
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:345: [transfer_token_by_mint_address] Getting wallet address
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:347: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:349: [transfer_token_by_mint_address] Checking source token account
+2024-12-22 08:13:33,650 [DEBUG] spl_token.service:355: [transfer_token_by_mint_address] Source account lookup result: None
+2024-12-22 08:13:33,650 [ERROR] spl_token.service:358: [transfer_token_by_mint_address] Source token account not found
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:359: [transfer_token_by_mint_address] Wallet address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:360: [transfer_token_by_mint_address] Mint address: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:483: [transfer_token_by_mint_address] Operation failed
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:484: [transfer_token_by_mint_address] Error type: <class 'goat_sdk.plugins.spl_token.exceptions.TokenAccountNotFoundError'>
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:485: [transfer_token_by_mint_address] Error details: Source Token token account not found for address: Hd5LxMAmYdwxk8r7PpubnrtVBxmE2ba4biFDDvNzrq6U
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:486: [transfer_token_by_mint_address] Parameters: to='7WNkYJqgvr1HJtHqh6BV5sHn2HgXtjEeHJ5MhDRqMY9y' mint_address='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' amount=1000000 mode_config=None
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:487: [transfer_token_by_mint_address] Wallet client: <AsyncMock id='4594070672'>
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:488: [transfer_token_by_mint_address] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:33,651 [ERROR] spl_token.service:489: [transfer_token_by_mint_address] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111d3f450>
+FAILED
+tests/plugins/spl_token/test_spl_token_service_integration.py::test_token_info_error_handling 2024-12-22 08:13:33,680 [INFO] spl_token.service:95: Initializing SPL Token Service on network: SolanaNetwork.DEVNET
+2024-12-22 08:13:33,680 [INFO] spl_token.service:98: Loaded 2 tokens
+2024-12-22 08:13:33,680 [DEBUG] spl_token.service:100: Loaded token: USDC with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}
+2024-12-22 08:13:33,680 [DEBUG] spl_token.service:100: Loaded token: SOL with mint addresses: {<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}
+2024-12-22 08:13:33,680 [INFO] spl_token.service:122: [get_token_info_by_symbol] Starting operation
+2024-12-22 08:13:33,680 [DEBUG] spl_token.service:123: [get_token_info_by_symbol] Input parameters: symbol='NONEXISTENT' mode_config=None
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:124: [get_token_info_by_symbol] Current network: SolanaNetwork.DEVNET
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:125: [get_token_info_by_symbol] Available tokens: ['USDC', 'SOL']
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:126: [get_token_info_by_symbol] Token list length: 2
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:127: [get_token_info_by_symbol] Token list state: [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:128: [get_token_info_by_symbol] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111ec59d0>
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:129: [get_token_info_by_symbol] Service instance attributes: {'network': <SolanaNetwork.DEVNET: 'devnet'>, 'tokens': [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]}
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:132: [get_token_info_by_symbol] Step: Finding token with symbol 'NONEXISTENT'
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:135: [get_token_info_by_symbol] Checking token: Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:136: [get_token_info_by_symbol] Token attributes: {'name': 'USD Coin', 'symbol': 'USDC', 'decimals': 6, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:135: [get_token_info_by_symbol] Checking token: Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:136: [get_token_info_by_symbol] Token attributes: {'name': 'Solana', 'symbol': 'SOL', 'decimals': 9, 'mint_addresses': {<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, 'logo_uri': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', 'token_type': <TokenType.FUNGIBLE: 'fungible'>}
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:143: [get_token_info_by_symbol] Token not found with symbol: NONEXISTENT
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:144: [get_token_info_by_symbol] Available tokens: ['USDC', 'SOL']
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:145: [get_token_info_by_symbol] Token list state: [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:146: [get_token_info_by_symbol] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111ec59d0>
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:147: [get_token_info_by_symbol] Service instance attributes: {'network': <SolanaNetwork.DEVNET: 'devnet'>, 'tokens': [Token(name='USD Coin', symbol='USDC', decimals=6, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', <SolanaNetwork.DEVNET: 'devnet'>: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>), Token(name='Solana', symbol='SOL', decimals=9, mint_addresses={<SolanaNetwork.MAINNET: 'mainnet'>: 'So11111111111111111111111111111111111111112', <SolanaNetwork.DEVNET: 'devnet'>: 'So11111111111111111111111111111111111111112'}, logo_uri='https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', token_type=<TokenType.FUNGIBLE: 'fungible'>)]}
+2024-12-22 08:13:33,681 [INFO] spl_token.service:95: Initializing SPL Token Service on network: invalid_network
+2024-12-22 08:13:33,681 [INFO] spl_token.service:98: Loaded 0 tokens
+2024-12-22 08:13:33,681 [INFO] spl_token.service:122: [get_token_info_by_symbol] Starting operation
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:123: [get_token_info_by_symbol] Input parameters: symbol='USDC' mode_config=None
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:124: [get_token_info_by_symbol] Current network: invalid_network
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:125: [get_token_info_by_symbol] Available tokens: []
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:126: [get_token_info_by_symbol] Token list length: 0
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:127: [get_token_info_by_symbol] Token list state: []
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:128: [get_token_info_by_symbol] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111ec5b10>
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:129: [get_token_info_by_symbol] Service instance attributes: {'network': 'invalid_network', 'tokens': []}
+2024-12-22 08:13:33,681 [DEBUG] spl_token.service:132: [get_token_info_by_symbol] Step: Finding token with symbol 'USDC'
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:143: [get_token_info_by_symbol] Token not found with symbol: USDC
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:144: [get_token_info_by_symbol] Available tokens: []
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:145: [get_token_info_by_symbol] Token list state: []
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:146: [get_token_info_by_symbol] Service instance: <goat_sdk.plugins.spl_token.spl_token_service.SplTokenService object at 0x111ec5b10>
+2024-12-22 08:13:33,681 [ERROR] spl_token.service:147: [get_token_info_by_symbol] Service instance attributes: {'network': 'invalid_network', 'tokens': []}
+PASSED
+
+========================= 2 failed, 1 passed in 9.17s ==========================
+pytest-xprocess reminder::Be sure to terminate the started process by running 'pytest --xkill' if you have not explicitly done so in your fixture with 'xprocess.getinfo(<process_name>).terminate()'.

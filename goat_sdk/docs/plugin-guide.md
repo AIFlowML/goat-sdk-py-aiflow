@@ -1,201 +1,323 @@
-# Plugin Development Guide
+# Plugin Guide
 
-This guide explains how to create custom plugins for the GOAT SDK.
+## Available Plugins
 
-## Plugin Architecture
+### SPL Token Plugin
 
-The GOAT SDK uses a plugin system based on the `PluginBase` class. All plugins must inherit from this class and implement the required methods.
-
-## Creating a Plugin
-
-### Basic Structure
+The SPL Token Plugin provides functionality for interacting with SPL tokens on Solana and Mode networks.
 
 ```python
-from goat_sdk.core.classes.plugin_base import PluginBase
-from pydantic import BaseModel
+from goat_sdk.plugins.spl_token import SplTokenPlugin
 
-class MyPluginParams(BaseModel):
-    param1: str
-    param2: int
+# Initialize plugin
+spl_plugin = SplTokenPlugin(sdk, chain=Chain.SOLANA)
 
-class MyPlugin(PluginBase):
-    def __init__(self, sdk):
-        super().__init__(name="my_plugin", tools=[self])
-        self.sdk = sdk
+# Get token balance
+balance = await spl_plugin.get_token_balance(
+    mint_address="...",
+    owner_address="..."
+)
 
-    async def my_method(self, params: MyPluginParams):
-        # Implementation
+# Transfer tokens
+result = await spl_plugin.transfer_token(
+    mint_address="...",
+    from_address="...",
+    to_address="...",
+    amount=1000000  # in base units
+)
+```
+
+#### Features
+
+- Token balance queries
+- Token transfers
+- Account existence checks
+- Token metadata retrieval
+- Base unit conversion utilities
+
+#### Configuration
+
+```python
+from goat_sdk.plugins.spl_token.types import SplTokenConfig
+
+config = SplTokenConfig(
+    commitment="confirmed",
+    skip_preflight=False,
+    retry_count=3
+)
+
+spl_plugin = SplTokenPlugin(sdk, chain=Chain.SOLANA, options=config)
+```
+
+### Solana NFT Plugin
+
+The Solana NFT Plugin enables interaction with NFTs on the Solana blockchain.
+
+```python
+from goat_sdk.plugins.solana_nft import SolanaNFTPlugin
+
+# Initialize plugin
+nft_plugin = SolanaNFTPlugin(sdk)
+
+# Get NFT metadata
+metadata = await nft_plugin.get_nft_metadata(
+    mint_address="..."
+)
+
+# Transfer NFT
+result = await nft_plugin.transfer_nft(
+    mint_address="...",
+    from_address="...",
+    to_address="..."
+)
+```
+
+#### Features
+
+- NFT metadata retrieval
+- NFT transfers
+- Collection queries
+- Ownership verification
+- Metadata updates
+
+#### Configuration
+
+```python
+from goat_sdk.plugins.solana_nft.types import NFTConfig
+
+config = NFTConfig(
+    metadata_program="...",  # Optional custom metadata program
+    retry_count=3
+)
+
+nft_plugin = SolanaNFTPlugin(sdk, options=config)
+```
+
+## Plugin Development Guide
+
+### Creating a New Plugin
+
+1. Create a new directory under `goat_sdk/plugins/`
+2. Implement the base Plugin class:
+
+```python
+from goat_sdk.core.plugin import Plugin
+from goat_sdk.core.types import Chain
+
+class MyPlugin(Plugin):
+    def __init__(
+        self,
+        sdk: GoatSDK,
+        chain: Chain = Chain.SOLANA,
+        options: Optional[dict] = None
+    ):
+        super().__init__(sdk, chain, options)
+        self.initialize()
+    
+    def initialize(self):
+        # Setup plugin-specific resources
+        pass
+    
+    async def cleanup(self):
+        # Cleanup resources
         pass
 ```
 
-### Required Components
-
-1. **Parameter Models**: Use Pydantic models for type safety
-2. **Plugin Class**: Inherit from `PluginBase`
-3. **Initialization**: Call `super().__init__()` with plugin name
-4. **Methods**: Implement async methods for plugin functionality
-
-## Example: Custom Token Plugin
+3. Define plugin-specific types:
 
 ```python
-from goat_sdk.core.classes.plugin_base import PluginBase
-from pydantic import BaseModel, Field
-from web3 import Web3
+from pydantic import BaseModel
 
-class CustomTokenParams(BaseModel):
-    name: str = Field(..., min_length=1, max_length=64)
-    symbol: str = Field(..., min_length=1, max_length=11)
-    decimals: int = Field(..., ge=0, le=18)
+class MyPluginConfig(BaseModel):
+    retry_count: int = 3
+    custom_option: str = "default"
 
-class CustomTokenPlugin(PluginBase):
-    def __init__(self, sdk):
-        super().__init__(name="custom_token", tools=[self])
-        self.sdk = sdk
-        self.w3 = Web3(Web3.HTTPProvider(sdk.provider_url))
+class OperationParams(BaseModel):
+    param1: str
+    param2: int
+```
 
-    async def create_token(self, params: CustomTokenParams):
-        # Implementation
+4. Implement plugin methods:
+
+```python
+class MyPlugin(Plugin):
+    async def my_operation(
+        self,
+        params: OperationParams
+    ) -> OperationResult:
+        # Validate parameters
+        # Perform operation
+        # Return results
         pass
+```
 
-    async def _validate_params(self, params: CustomTokenParams):
-        # Validation logic
+### Adding AI Tools
+
+1. Define tool parameters:
+
+```python
+class MyToolParams(BaseModel):
+    param1: str = Field(..., description="First parameter")
+    param2: int = Field(..., description="Second parameter")
+```
+
+2. Create tool function:
+
+```python
+async def my_tool_function(
+    self,
+    params: MyToolParams
+) -> dict:
+    result = await self.my_operation(params)
+    return {"status": "success", "data": result}
+```
+
+3. Register tool:
+
+```python
+def get_tools(self) -> List[Tool]:
+    return [
+        Tool(
+            name="my_tool",
+            description="Performs my operation",
+            function=self.my_tool_function,
+            parameters=MyToolParams
+        )
+    ]
+```
+
+### Error Handling
+
+1. Define plugin-specific exceptions:
+
+```python
+class MyPluginError(GoatSDKError):
+    """Base exception for plugin errors."""
+    pass
+
+class OperationFailedError(MyPluginError):
+    def __init__(self, operation: str, reason: str):
+        super().__init__(
+            f"Operation {operation} failed: {reason}"
+        )
+```
+
+2. Use error handling in methods:
+
+```python
+async def my_operation(self, params: OperationParams):
+    try:
+        # Attempt operation
         pass
+    except NetworkError as e:
+        raise MyPluginError(f"Network error: {str(e)}")
+    except Exception as e:
+        raise OperationFailedError(
+            "my_operation",
+            str(e)
+        )
+```
+
+### Testing
+
+1. Create test fixtures:
+
+```python
+@pytest.fixture
+def my_plugin(sdk):
+    return MyPlugin(sdk)
+
+@pytest.fixture
+def mock_connection(mocker):
+    return mocker.patch("goat_sdk.core.connection.Connection")
+```
+
+2. Write test cases:
+
+```python
+async def test_my_operation(my_plugin, mock_connection):
+    params = OperationParams(param1="test", param2=123)
+    
+    mock_connection.send.return_value = {
+        "result": "success"
+    }
+    
+    result = await my_plugin.my_operation(params)
+    assert result.status == "success"
 ```
 
 ## Best Practices
 
-### 1. Type Safety
+1. **Configuration**
+   - Use Pydantic models for config validation
+   - Provide sensible defaults
+   - Document all config options
 
-- Use Pydantic models for all parameters
-- Add field validation with descriptive errors
-- Use type hints consistently
+2. **Error Handling**
+   - Create plugin-specific exceptions
+   - Provide detailed error messages
+   - Handle network errors gracefully
 
-```python
-from pydantic import BaseModel, Field, field_validator
+3. **Testing**
+   - Mock external dependencies
+   - Test error cases
+   - Use fixtures for common setup
 
-class TransferParams(BaseModel):
-    recipient: str = Field(..., description="Recipient address")
-    amount: int = Field(..., gt=0, description="Amount to transfer")
+4. **Documentation**
+   - Document all public methods
+   - Provide usage examples
+   - Include type hints
 
-    @field_validator("recipient")
-    def validate_address(cls, v: str) -> str:
-        if not Web3.is_address(v):
-            raise ValueError("Invalid address")
-        return Web3.to_checksum_address(v)
-```
+5. **Performance**
+   - Implement connection pooling
+   - Cache frequently used data
+   - Use batch operations when possible
 
-### 2. Error Handling
+## Examples
 
-- Create specific error types
-- Provide detailed error messages
-- Handle network errors gracefully
-
-```python
-from goat_sdk.core.errors import GoatSDKError
-
-class CustomPluginError(GoatSDKError):
-    pass
-
-try:
-    result = await self._make_call()
-except Exception as e:
-    raise CustomPluginError(f"Operation failed: {str(e)}")
-```
-
-### 3. Async/Await
-
-- Use async/await for network operations
-- Handle concurrent operations properly
-- Implement proper cleanup
+### Basic Plugin Usage
 
 ```python
-async def make_transaction(self, params):
-    try:
-        async with self._get_session() as session:
-            result = await self._send_transaction(session, params)
-            return result
-    finally:
-        await self._cleanup()
+# Initialize SDK
+sdk = GoatSDK(
+    private_key="...",
+    network=Network.MAINNET
+)
+
+# Initialize plugin
+my_plugin = MyPlugin(sdk)
+
+# Use plugin
+params = OperationParams(
+    param1="test",
+    param2=123
+)
+
+result = await my_plugin.my_operation(params)
 ```
 
-### 4. Documentation
-
-- Add docstrings to all classes and methods
-- Include example usage
-- Document all parameters and return types
+### AI Integration
 
 ```python
-class MyPlugin(PluginBase):
-    """Custom plugin for token operations.
+# Get plugin tools
+tools = my_plugin.get_tools()
 
-    Example:
-        ```python
-        plugin = MyPlugin(sdk)
-        result = await plugin.my_method({"param1": "value"})
-        ```
-    """
+# Create Langchain agent
+agent = initialize_agent(
+    tools=LangchainAdapter.create_tools(tools),
+    llm=ChatOpenAI(),
+    agent="chat-conversational-react-description",
+    verbose=True
+)
 
-    async def my_method(self, params: MyPluginParams):
-        """Perform a custom operation.
-
-        Args:
-            params: Operation parameters
-
-        Returns:
-            TransactionResult: Result of the operation
-
-        Raises:
-            CustomPluginError: If the operation fails
-        """
-        pass
+# Use agent
+response = await agent.arun(
+    "Perform my operation with param1=test and param2=123"
+)
 ```
 
-## Testing
+## Next Steps
 
-### 1. Unit Tests
-
-```python
-import pytest
-from unittest.mock import Mock
-
-def test_plugin_initialization():
-    sdk = Mock()
-    plugin = MyPlugin(sdk)
-    assert plugin.name == "my_plugin"
-
-@pytest.mark.asyncio
-async def test_my_method():
-    sdk = Mock()
-    plugin = MyPlugin(sdk)
-    result = await plugin.my_method({"param1": "value"})
-    assert result.status == "success"
-```
-
-### 2. Integration Tests
-
-```python
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_live_transaction():
-    sdk = GoatSDK(
-        private_key="test_key",
-        provider_url="http://localhost:8545"
-    )
-    plugin = MyPlugin(sdk)
-    result = await plugin.my_method({"param1": "value"})
-    assert result.transaction_hash is not None
-```
-
-## Publishing
-
-1. Add your plugin to the `goat_sdk/plugins` directory
-2. Update the plugin registry
-3. Add documentation
-4. Add tests
-5. Create a pull request
-
-## Example Plugins
-
-Check out these example plugins:
-- [ERC20 Plugin](../plugins/ERC20)
-- [SPL Token Plugin](../plugins/spl_token)
+- See [API Reference](./api-reference.md) for detailed method documentation
+- Check [Examples](../examples/) for more usage examples
+- Learn about [Error Handling](./error-handling.md)

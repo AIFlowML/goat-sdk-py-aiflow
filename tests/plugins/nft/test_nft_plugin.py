@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from solana.publickey import PublicKey
+from solders.pubkey import PublicKey
 from solana.transaction import Transaction, TransactionInstruction
 from goat_sdk.plugins.nft.plugin import NFTPlugin, TOKEN_PROGRAM_ID
 from goat_sdk.plugins.nft.types import (

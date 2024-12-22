@@ -29,11 +29,12 @@ class InvalidTokenAddressError(SplTokenError):
 
 class InsufficientBalanceError(SplTokenError):
     """Raised when there are insufficient tokens for a transfer."""
-    def __init__(self, required: int, available: int):
+    def __init__(self, required: int, available: int, token_symbol: str):
         self.required = required
         self.available = available
+        self.token_symbol = token_symbol
         super().__init__(
-            f"Insufficient balance for transfer. Required: {required}, Available: {available}"
+            f"Insufficient balance for transfer. Required: {required}, Available: {available} {token_symbol}"
         )
 
 

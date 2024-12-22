@@ -4,151 +4,323 @@
 
 ### GoatSDK
 
-The main SDK class that provides the foundation for all plugin interactions.
+The main SDK class that provides the foundation for all blockchain interactions.
 
 ```python
 class GoatSDK:
     def __init__(
-        private_key: str,
-        provider_url: str,
-        network: Optional[str] = None
-    )
+        self,
+        private_key: Optional[str] = None,
+        mnemonic: Optional[str] = None,
+        wallet: Optional[WalletBase] = None,
+        network: Network = Network.MAINNET,
+        chain: Chain = Chain.SOLANA,
+        rpc_url: Optional[str] = None,
+        options: Optional[dict] = None
+    ):
+        """Initialize the SDK.
+        
+        Args:
+            private_key: Wallet private key
+            mnemonic: Wallet mnemonic phrase
+            wallet: Custom wallet implementation
+            network: Network to connect to
+            chain: Blockchain to use
+            rpc_url: Custom RPC endpoint
+            options: Additional configuration options
+        """
 ```
-
-#### Parameters
-
-- `private_key`: The private key for signing transactions
-- `provider_url`: The URL of the network provider
-- `network`: Optional network identifier
-
-## Plugins
-
-### ERC20Plugin
-
-Plugin for interacting with ERC20 tokens on the Mode network.
 
 #### Methods
 
-##### `deploy_token`
+1. **get_tools**
+   ```python
+   def get_tools(
+       self,
+       plugins: List[Type[Plugin]]
+   ) -> List[Tool]:
+       """Get tools from plugins for AI integration.
+       
+       Args:
+           plugins: List of plugin classes to initialize
+           
+       Returns:
+           List[Tool]: List of tools ready for AI framework integration
+       """
+   ```
+
+2. **sign_transaction**
+   ```python
+   async def sign_transaction(
+       self,
+       transaction: Transaction
+   ) -> SignedTransaction:
+       """Sign a transaction.
+       
+       Args:
+           transaction: Transaction to sign
+           
+       Returns:
+           SignedTransaction: The signed transaction
+           
+       Raises:
+           WalletError: If signing fails
+       """
+   ```
+
+## Core Types
+
+### Network
+
 ```python
-async def deploy_token(params: DeployTokenParams) -> TokenDeploymentResult
+from enum import Enum
+
+class Network(str, Enum):
+    MAINNET = "mainnet"
+    TESTNET = "testnet"
+    DEVNET = "devnet"
+    LOCAL = "local"
 ```
-
-Deploy a new ERC20 token.
-
-**Parameters:**
-- `name`: Token name
-- `symbol`: Token symbol
-- `initial_supply`: Initial token supply in base units
-
-**Returns:**
-- `contract_address`: Deployed contract address
-- `transaction_hash`: Deployment transaction hash
-- `explorer_url`: URL to view the transaction
-
-##### `transfer`
-```python
-async def transfer(params: TransferParams) -> TransactionResult
-```
-
-Transfer tokens to another address.
-
-**Parameters:**
-- `token_address`: Token contract address
-- `to_address`: Recipient address
-- `amount`: Amount to transfer in base units
-
-**Returns:**
-- `transaction_hash`: Transfer transaction hash
-- `explorer_url`: URL to view the transaction
-
-##### `approve`
-```python
-async def approve(params: ApproveParams) -> TransactionResult
-```
-
-Approve token spending.
-
-**Parameters:**
-- `token_address`: Token contract address
-- `spender_address`: Address to approve
-- `amount`: Amount to approve in base units
-
-**Returns:**
-- `transaction_hash`: Approval transaction hash
-- `explorer_url`: URL to view the transaction
-
-### SplTokenPlugin
-
-Plugin for interacting with SPL tokens on Solana.
-
-#### Methods
-
-##### `mint_token`
-```python
-async def mint_token(params: MintTokenParams) -> MintResult
-```
-
-Mint new tokens.
-
-**Parameters:**
-- `amount`: Amount to mint
-- `recipient`: Recipient address
-
-**Returns:**
-- `signature`: Transaction signature
-- `explorer_url`: URL to view the transaction
-
-## Types
 
 ### Chain
+
 ```python
-class Chain:
-    type: str  # "evm" or "solana"
-    chain_id: Optional[int]  # For EVM chains
+class Chain(str, Enum):
+    SOLANA = "solana"
+    MODE = "mode"
+    ETHEREUM = "ethereum"
 ```
 
-### TokenDeploymentResult
+### ModeConfig
+
 ```python
-class TokenDeploymentResult:
-    contract_address: str
-    transaction_hash: str
-    explorer_url: str
+from pydantic import BaseModel
+
+class ModeConfig(BaseModel):
+    """Configuration for operation modes."""
+    
+    retry_count: int = 3
+    timeout: int = 30
+    commitment: str = "confirmed"
+    skip_preflight: bool = False
 ```
 
-### TransactionResult
+## Plugin Base Classes
+
+### Plugin
+
 ```python
-class TransactionResult:
-    transaction_hash: str
-    explorer_url: str
+class Plugin:
+    def __init__(
+        self,
+        sdk: GoatSDK,
+        chain: Chain,
+        options: Optional[dict] = None
+    ):
+        """Initialize a plugin.
+        
+        Args:
+            sdk: SDK instance
+            chain: Blockchain this plugin works with
+            options: Plugin-specific options
+        """
 ```
 
-## Error Handling
+### Tool
 
-### GoatSDKError
-Base class for all SDK errors.
-
-### NetworkError
-Raised when there are network-related issues.
-
-### ValidationError
-Raised when input validation fails.
-
-### TransactionError
-Raised when a transaction fails.
-
-## Utilities
-
-### convert_to_base_unit
 ```python
-def convert_to_base_unit(amount: float, decimals: int) -> int
+class Tool:
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        function: Callable,
+        parameters: Type[BaseModel]
+    ):
+        """Initialize a tool.
+        
+        Args:
+            name: Tool name
+            description: Tool description
+            function: Async function to execute
+            parameters: Pydantic model for parameters
+        """
 ```
 
-Convert from decimal to base units.
+## Exceptions
 
-### convert_from_base_unit
+### Base Exceptions
+
 ```python
-def convert_from_base_unit(amount: int, decimals: int) -> float
+class GoatSDKError(Exception):
+    """Base exception for all SDK errors."""
+    pass
+
+class NetworkError(GoatSDKError):
+    """Network-related errors."""
+    pass
+
+class WalletError(GoatSDKError):
+    """Wallet-related errors."""
+    pass
 ```
 
-Convert from base to decimal units.
+### Token Exceptions
+
+```python
+class TokenError(GoatSDKError):
+    """Base exception for token operations."""
+    pass
+
+class InsufficientBalanceError(TokenError):
+    def __init__(self, required: int, available: int, token_symbol: str):
+        self.required = required
+        self.available = available
+        self.token_symbol = token_symbol
+        super().__init__(
+            f"Insufficient balance for transfer of {token_symbol}. "
+            f"Required: {required}, Available: {available}"
+        )
+
+class TokenAccountNotFoundError(TokenError):
+    def __init__(self, account_type: str, address: str):
+        self.account_type = account_type
+        self.address = address
+        super().__init__(
+            f"{account_type} token account not found for address: {address}"
+        )
+```
+
+### NFT Exceptions
+
+```python
+class NFTError(GoatSDKError):
+    """Base exception for NFT operations."""
+    pass
+
+class NFTNotFoundError(NFTError):
+    def __init__(self, mint_address: str):
+        self.mint_address = mint_address
+        super().__init__(f"NFT not found: {mint_address}")
+
+class MetadataError(NFTError):
+    def __init__(self, mint_address: str, reason: str):
+        self.mint_address = mint_address
+        self.reason = reason
+        super().__init__(
+            f"Metadata error for NFT {mint_address}: {reason}"
+        )
+```
+
+## Framework Adapters
+
+### LangChain Adapter
+
+```python
+class LangchainAdapter:
+    @staticmethod
+    def create_tools(
+        tools: List[Tool]
+    ) -> List[LangchainTool]:
+        """Convert SDK tools to Langchain tools.
+        
+        Args:
+            tools: List of SDK tools
+            
+        Returns:
+            List[LangchainTool]: Tools ready for Langchain use
+        """
+```
+
+### LlamaIndex Adapter
+
+```python
+class LlamaIndexAdapter:
+    @staticmethod
+    def create_tools(
+        tools: List[Tool]
+    ) -> List[LlamaIndexTool]:
+        """Convert SDK tools to LlamaIndex tools.
+        
+        Args:
+            tools: List of SDK tools
+            
+        Returns:
+            List[LlamaIndexTool]: Tools ready for LlamaIndex use
+        """
+```
+
+## Utility Functions
+
+### Conversion Utilities
+
+```python
+def to_base_units(
+    amount: float,
+    decimals: int
+) -> int:
+    """Convert decimal amount to base units.
+    
+    Args:
+        amount: Amount in decimal format
+        decimals: Token decimals
+        
+    Returns:
+        int: Amount in base units
+    """
+
+def from_base_units(
+    amount: int,
+    decimals: int
+) -> float:
+    """Convert base units to decimal amount.
+    
+    Args:
+        amount: Amount in base units
+        decimals: Token decimals
+        
+    Returns:
+        float: Amount in decimal format
+    """
+```
+
+### Network Utilities
+
+```python
+async def get_network_time(
+    connection: Connection
+) -> int:
+    """Get current network time.
+    
+    Args:
+        connection: Network connection
+        
+    Returns:
+        int: Current network timestamp
+    """
+
+async def wait_for_confirmation(
+    connection: Connection,
+    signature: str,
+    timeout: int = 30
+) -> bool:
+    """Wait for transaction confirmation.
+    
+    Args:
+        connection: Network connection
+        signature: Transaction signature
+        timeout: Maximum wait time in seconds
+        
+    Returns:
+        bool: True if confirmed, False if timed out
+        
+    Raises:
+        NetworkError: If transaction failed
+    """
+```
+
+## Next Steps
+
+- See [Plugin Guide](./plugin-guide.md) for plugin-specific APIs
+- Check [Examples](../examples/) for usage examples
+- Learn about [AI Integration](./ai-integration.md)

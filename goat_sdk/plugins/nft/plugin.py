@@ -3,7 +3,7 @@
 from typing import List, Optional, Dict, Any
 from solana.rpc.async_api import AsyncClient
 from solana.transaction import Transaction, TransactionInstruction
-from solana.publickey import PublicKey
+from solders.pubkey import PublicKey
 from goat_sdk.core.plugin_base import PluginBase
 from goat_sdk.core.utils.retry import with_retry
 from goat_sdk.core.telemetry.middleware import trace_transaction
