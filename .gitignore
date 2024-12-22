@@ -232,3 +232,14 @@ htmlcov/
 logs
 scripts
 extra
+
+# direnv
+.direnv/
+.envrc
+
+# Additional local files
+.DS_Store
+backups
+extra
+extra/
+scripts/

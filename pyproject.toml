@@ -3,10 +3,10 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "GOAT-sdk-py"
+name = "goat-sdk"
 version = "0.1.0"
-description = "Unofficial Python SDK for GOAT Protocol - A comprehensive DeFi and NFT trading toolkit"
-authors = ["Igor Lessio <ilessio.aimaster@gmail.com>"]
+description = "GOAT SDK - Unofficial SDK for GOAT"
+authors = ["Igor Lessio <igor@aiflow.ml>"]
 readme = "README.md"
 license = "MIT"
 packages = [{include = "goat_sdk"}]
@@ -17,7 +17,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -28,10 +27,13 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-pydantic = "^2.0.0"
-aiohttp = "^3.8.0"
-websockets = "^10.0"
+python = "^3.9"
+aiohttp = "^3.9.1"
+pydantic = "^2.5.2"
+web3 = "^6.11.3"
+solana = "^0.30.2"
+anchorpy = "^0.16.0"
+asyncio = "^3.4.3"
 python-dotenv = "^1.0.0"
 pandas = "^1.3.0"
 numpy = "^1.21.0"
@@ -46,10 +48,7 @@ pytz = "^2022.1"
 backoff = "^2.2.1"
 
 # Optional dependencies for different blockchain platforms
-solana = [{version = ">=0.30.2,<0.31.0", optional = true}]
-solders = [{version = ">=0.17.0,<0.18.0", optional = true}]
-anchorpy = [{version = ">=0.17.1,<0.17.2", optional = true}]
-web3 = {version = "^6.11.3", optional = true}
+solders = {version = ">=0.17.0,<0.18.0", optional = true}
 eth-account = {version = "^0.9.0", optional = true}
 eth-typing = {version = "^3.0.0", optional = true}
 base58 = {version = "^2.1.0", optional = true}
@@ -65,27 +64,20 @@ defi = ["web3", "eth-account", "eth-typing"]
 nft = ["web3", "solana", "solders"]
 full = ["web3", "eth-account", "eth-typing", "py-solc-x", "solana", "solders", "anchorpy", "base58"]
 
-[tool.poetry.group.test.dependencies]
-pytest = "^7.0.0"
-pytest-cov = "^4.0.0"
-pytest-mock = "^3.10.0"
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+mypy = "^1.7.1"
+ruff = "^0.1.7"
+black = "^23.11.0"
 pytest-timeout = "^2.1.0"
 pytest-xdist = "^3.2.0"
 aioresponses = "^0.7.4"
 responses = "^0.23.0"
 freezegun = "^1.2.0"
 pytest-xprocess = ">=0.18.1,<0.19.0"
-pytest-asyncio = ">=0.20.0,<0.21.0"
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.1.0"
-isort = "^5.13.0"
-flake8 = "^6.0.0"
-mypy = "^1.8.0"
-pre-commit = "^3.0.0"
-bandit = "^1.7.0"
-pytest-xprocess = ">=0.18.1,<0.19.0"
-langchain = "^0.1.0"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^6.0.0"
@@ -93,94 +85,32 @@ sphinx-rtd-theme = "^1.2.0"
 sphinx-autodoc-typehints = "^1.22.0"
 myst-parser = "^1.0.0"
 
-[tool.poetry.urls]
-Homepage = "https://github.com/ilessio/GOAT-sdk-py"
-Documentation = "https://docs.goatsdk.io"
-"Bug Tracker" = "https://github.com/ilessio/GOAT-sdk-py/issues"
-Changelog = "https://github.com/ilessio/GOAT-sdk-py/blob/main/CHANGELOG.md"
-
-[tool.black]
-line-length = 88
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-# A regex preceded with ^/ will apply only to files and directories
-# in the root of the project.
-^/tests/data/
-'''
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 88
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=goat_sdk --cov-report=term-missing"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
 check_untyped_defs = true
+disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
-strict_equality = true
 
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+[tool.ruff]
+select = ["E", "F", "B", "I"]
+ignore = []
+line-length = 120
+target-version = "py39"
+fix = true
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = """
-    --tb=short
-    --strict-markers
-    --asyncio-mode=auto
-    -p no:warnings
-    --capture=no
-"""
-markers = [
-    "integration: mark test as integration test",
-    "security: mark test as security test",
-    "performance: mark test as performance test"
-]
-filterwarnings = [
-    "error",
-    "ignore::DeprecationWarning",
-    "ignore::UserWarning",
-]
-
-[tool.coverage.run]
-branch = true
-source = ["goat_sdk"]
-omit = [
-    "tests/*",
-    "setup.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "pass",
-    "raise ImportError",
-]
-
-[tool.bandit]
-exclude_dirs = ["tests", "examples"]
-skips = ["B101"]
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]

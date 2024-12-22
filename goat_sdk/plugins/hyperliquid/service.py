@@ -1,11 +1,43 @@
+"""
+          _____                    _____                    _____                    _____           _______                   _____          
+         /\    \                  /\    \                  /\    \                  /\    \         /::\    \                 /\    \         
+        /::\    \                /::\    \                /::\    \                /::\____\       /::::\    \               /::\____\        
+       /::::\    \               \:::\    \              /::::\    \              /:::/    /      /::::::\    \             /:::/    /        
+      /::::::\    \               \:::\    \            /::::::\    \            /:::/    /      /::::::::\    \           /:::/   _/___      
+     /:::/\:::\    \               \:::\    \          /:::/\:::\    \          /:::/    /      /:::/~~\:::\    \         /:::/   /\    \     
+    /:::/__\:::\    \               \:::\    \        /:::/__\:::\    \        /:::/    /      /:::/    \:::\    \       /:::/   /::\____\    
+   /::::\   \:::\    \              /::::\    \      /::::\   \:::\    \      /:::/    /      /:::/    / \:::\    \     /:::/   /:::/    /    
+  /::::::\   \:::\    \    ____    /::::::\    \    /::::::\   \:::\    \    /:::/    /      /:::/____/   \:::\____\   /:::/   /:::/   _/___  
+ /:::/\:::\   \:::\    \  /\   \  /:::/\:::\    \  /:::/\:::\   \:::\    \  /:::/    /      |:::|    |     |:::|    | /:::/___/:::/   /\    \ 
+/:::/  \:::\   \:::\____\/::\   \/:::/  \:::\____\/:::/  \:::\   \:::\____\/:::/____/       |:::|____|     |:::|    ||:::|   /:::/   /::\____\
+\::/    \:::\  /:::/    /\:::\  /:::/    \::/    /\::/    \:::\   \::/    /\:::\    \        \:::\    \   /:::/    / |:::|__/:::/   /:::/    /
+ \/____/ \:::\/:::/    /  \:::\/:::/    / \/____/  \/____/ \:::\   \/____/  \:::\    \        \:::\    \ /:::/    /   \:::\/:::/   /:::/    / 
+          \::::::/    /    \::::::/    /                    \:::\    \       \:::\    \        \:::\    /:::/    /     \::::::/   /:::/    /  
+           \::::/    /      \::::/____/                      \:::\____\       \:::\    \        \:::\__/:::/    /       \::::/___/:::/    /   
+           /:::/    /        \:::\    \                       \::/    /        \:::\    \        \::::::::/    /         \:::\__/:::/    /    
+          /:::/    /          \:::\    \                       \/____/          \:::\    \        \::::::/    /           \::::::::/    /     
+         /:::/    /            \:::\    \                                        \:::\    \        \::::/    /             \::::::/    /      
+        /:::/    /              \:::\____\                                        \:::\____\        \::/____/               \::::/    /       
+        \::/    /                \::/    /                                         \::/    /         ~~                      \::/____/        
+         \/____/                  \/____/                                           \/____/                                   ~~              
+                                                                                                                                              
+
+         
+ 
+     GOAT-SDK Python - Unofficial SDK for GOAT - Igor Lessio - AIFlow.ml
+     
+     Path: goat_sdk/plugins/hyperliquid/utils.py
+"""
+
 """Service for interacting with Hyperliquid API."""
 
+import json
 import logging
 import time
 import ssl
 import os
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 import backoff
@@ -85,20 +117,14 @@ class HyperliquidService:
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
+        *,
+        data: Optional[Dict] = None,
+        json: Optional[Dict] = None,
+        auth_required: bool = False,
         rate_limit_key: Optional[str] = None
-    ) -> Any:
-        """Make HTTP request to Hyperliquid API.
-        
-        Args:
-            method: HTTP method
-            endpoint: API endpoint
-            data: Request data
-            rate_limit_key: Rate limit key
-            
-        Returns:
-            Response data
-        """
+    ) -> Dict:
+        """Make a request to the API."""
+        # Use testnet URL if specified
         url = f"{self.base_url}/{endpoint}"
         
         headers = {
@@ -107,23 +133,48 @@ class HyperliquidService:
             "User-Agent": "goat-sdk/1.0.0"
         }
         
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.request(
-                method,
-                url,
-                json=data,
-                ssl=self.ssl_context
-            ) as response:
-                if response.status != 200:
-                    raise ValueError(f"Request failed with status {response.status}")
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+            
+        # Apply rate limiting if specified
+        if rate_limit_key and rate_limit_key in self.rate_limiters:
+            await self.rate_limiters[rate_limit_key].acquire()
+        
+        # Use json parameter if provided, otherwise use data
+        request_data = json if json is not None else data
+        
+        self.logger.debug(f"Making {method} request to {url}")
+        self.logger.debug(f"Headers: {headers}")
+        self.logger.debug(f"Request data: {request_data}")
+        
+        async with self.session.request(
+            method,
+            url,
+            json=request_data,
+            headers=headers,
+            ssl=self.ssl_context
+        ) as response:
+            response_text = await response.text()
+            self.logger.debug(f"Response status: {response.status}")
+            self.logger.debug(f"Response text: {response_text}")
+            
+            if response.status != 200:
+                error_msg = f"Request failed with status {response.status}: {response_text}"
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
+                
+            try:
                 return await response.json()
+            except Exception as e:
+                self.logger.error(f"Failed to parse JSON response: {response_text}")
+                raise
             
     async def get_markets(self) -> List[MarketInfo]:
         """Get list of available markets."""
         meta_response = await self._request(
             "POST",
             "info",
-            data={"type": "meta"},
+            json={"type": "meta"},
             rate_limit_key="market"
         )
         
@@ -131,7 +182,7 @@ class HyperliquidService:
         state_response = await self._request(
             "POST",
             "info",
-            data={"type": "allMids"},
+            json={"type": "allMids"},
             rate_limit_key="market"
         )
         
@@ -144,47 +195,46 @@ class HyperliquidService:
                 price=price,
                 index_price=price,  # Using mid price as fallback
                 mark_price=price,   # Using mid price as fallback
-                open_interest=Decimal("0"),
-                funding_rate=Decimal("0"),
-                volume_24h=Decimal("0"),
-                size_decimals=market.get("szDecimals", 0)
+                open_interest=Decimal("0"),  # TODO: Get from API
+                funding_rate=Decimal("0"),   # TODO: Get from API
+                volume_24h=Decimal("0"),     # TODO: Get from API
+                size_decimals=market.get("szDecimals", 8)
             ))
+            
         return markets
         
     async def get_market_summary(self, coin: str) -> MarketSummary:
         """Get market summary."""
-        # Get market state
-        state_response = await self._request(
-            "POST",
-            "info",
-            data={"type": "allMids"},
-            rate_limit_key="market"
-        )
-        
-        if coin not in state_response:
-            raise ValueError(f"Market not found: {coin}")
-            
-        price = Decimal(str(state_response[coin]))
-        
-        # Get market metadata
+        # Get meta data
         meta_response = await self._request(
             "POST",
             "info",
-            data={"type": "meta"},
+            json={"type": "meta"},
             rate_limit_key="market"
         )
         
-        market_data = next((m for m in meta_response["universe"] if m["name"] == coin), None)
-        if not market_data:
-            raise ValueError(f"Market metadata not found: {coin}")
+        # Get current prices
+        state_response = await self._request(
+            "POST",
+            "info",
+            json={"type": "allMids"},
+            rate_limit_key="market"
+        )
+        
+        market = next((m for m in meta_response["universe"] if m["name"] == coin), None)
+        if not market:
+            raise ValueError(f"Market {coin} not found")
             
+        price = Decimal(str(state_response.get(coin, "0")))
+        
         return MarketSummary(
             coin=coin,
-            markPx=price,
-            oraclePx=price,  # Using mid price as oracle price
-            dayNtlVlm=Decimal("0"),  # Not available in this response
-            openInterest=Decimal("0"),  # Not available in this response
-            funding=Decimal("0")  # Not available in this response
+            price=price,
+            index_price=price,  # Using mid price as fallback
+            mark_price=price,   # Using mid price as fallback
+            open_interest=Decimal(str(market.get("openInterest", "0"))),
+            funding_rate=Decimal(str(market.get("fundingRate", "0"))),
+            volume_24h=Decimal(str(market.get("volume24h", "0")))
         )
         
     async def get_orderbook(self, coin: str, depth: int = 100) -> OrderbookResponse:
@@ -192,12 +242,18 @@ class HyperliquidService:
         response = await self._request(
             "POST",
             "info",
-            data={
+            json={
                 "type": "l2Book",
-                "coin": coin
+                "coin": coin,
+                "depth": depth
             },
             rate_limit_key="market"
         )
+        
+        # API returns levels array where index 0 is bids and index 1 is asks
+        levels = response.get("levels", [[], []])
+        bids = levels[0] if len(levels) > 0 else []
+        asks = levels[1] if len(levels) > 1 else []
         
         return OrderbookResponse(
             coin=coin,
@@ -206,29 +262,26 @@ class HyperliquidService:
                     price=Decimal(str(level["px"])),
                     size=Decimal(str(level["sz"]))
                 )
-                for level in response.get("levels", [[]])[0][:depth]
+                for level in bids
             ],
             asks=[
                 OrderbookLevel(
                     price=Decimal(str(level["px"])),
                     size=Decimal(str(level["sz"]))
                 )
-                for level in response.get("levels", [[], []])[1][:depth]
+                for level in asks
             ]
         )
         
-    async def get_recent_trades(
-        self,
-        coin: str,
-        limit: int = 100
-    ) -> List[TradeInfo]:
+    async def get_recent_trades(self, coin: str, limit: int = 100) -> List[TradeInfo]:
         """Get recent trades."""
         response = await self._request(
             "POST",
             "info",
-            data={
+            json={
                 "type": "recentTrades",
-                "coin": coin
+                "coin": coin,
+                "limit": limit
             },
             rate_limit_key="market"
         )
@@ -240,43 +293,112 @@ class HyperliquidService:
                 price=Decimal(str(trade["px"])),
                 size=Decimal(str(trade["sz"])),
                 side=OrderSide.BUY if trade["side"] == "B" else OrderSide.SELL,
-                timestamp=trade["time"]
+                timestamp=int(trade["time"])
             )
-            for trade in response[:limit]
+            for trade in response
         ]
         
-    async def create_order(self, request: OrderRequest) -> OrderResult:
-        """Create a new order.
-        
-        Args:
-            request: Order request
-            
-        Returns:
-            Order result
-        """
+    async def approve_agent_wallet(self, agent_address: str, agent_name: str) -> bool:
+        """Approve an agent wallet."""
         try:
+            timestamp = int(time.time() * 1000)
+            
+            request_data = {
+                "action": {
+                    "type": "approveAgent",
+                    "agentAddress": agent_address,
+                    "agentName": agent_name,
+                    "hyperliquidChain": "Testnet" if self.testnet else "Mainnet",
+                    "signatureChainId": "0xa4b1",  # Arbitrum chain ID
+                    "nonce": timestamp
+                },
+                "nonce": timestamp,
+                "signature": {
+                    "r": "0x...",  # TODO: Generate signature
+                    "s": "0x...",
+                    "v": 27
+                }
+            }
+            
+            self.logger.debug(f"Agent approval request: {request_data}")
+            
             response = await self._request(
                 "POST",
-                "trade",
-                json={
-                    "type": "order",
-                    "coin": request.coin,
-                    "side": request.side.value,
-                    "orderType": request.type.value,
-                    "size": str(request.size),
-                    "price": str(request.price) if request.price else None,
-                    "reduceOnly": request.reduce_only,
-                    "postOnly": request.post_only,
-                    "clientId": request.client_id
-                },
+                "exchange",
+                json=request_data,
                 auth_required=True,
-                rate_limit_type="order"
+                rate_limit_key="agent"
             )
+            
+            self.logger.debug(f"Agent approval response: {response}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Agent approval failed: {str(e)}", exc_info=True)
+            raise
+        
+    async def create_order(self, request: OrderRequest) -> OrderResult:
+        """Create a new order."""
+        try:
+            self.logger.info(f"Creating order: {request}")
+            
+            # Convert order type to time-in-force
+            tif = "Alo" if request.post_only else "Gtc"
+            
+            # Current timestamp in milliseconds
+            timestamp = int(time.time() * 1000)
+            
+            # Construct order data
+            order_data = {
+                "action": {
+                    "type": "order",
+                    "orders": [{
+                        "a": 0,  # BTC is index 0 in universe
+                        "b": request.side == OrderSide.BUY,
+                        "p": str(request.price) if request.price else None,
+                        "s": str(request.size),
+                        "r": request.reduce_only,
+                        "t": {
+                            "limit": {
+                                "tif": tif
+                            }
+                        }
+                    }],
+                    "grouping": "na",
+                    "hyperliquidChain": "Testnet" if self.testnet else "Mainnet",
+                    "signatureChainId": "0xa4b1",  # Arbitrum chain ID
+                    "time": timestamp
+                },
+                "nonce": timestamp,
+                "signature": {
+                    "r": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "s": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "v": 27
+                }
+            }
+            
+            self.logger.debug(f"Order request data: {order_data}")
+            
+            response = await self._request(
+                "POST",
+                "exchange",
+                json=order_data,
+                auth_required=True,
+                rate_limit_key="order"
+            )
+            
+            self.logger.debug(f"Order response: {response}")
+            
+            # Extract order ID from response
+            order_id = response.get("response", {}).get("data", {}).get("statuses", [{}])[0].get("resting", {}).get("oid")
+            if not order_id:
+                raise ValueError("Failed to get order ID from response")
             
             return OrderResult(
                 success=True,
                 order=OrderResponse(
-                    id=response["orderId"],
+                    id=str(order_id),
                     client_id=request.client_id,
                     coin=request.coin,
                     size=request.size,
@@ -286,11 +408,12 @@ class HyperliquidService:
                     status=OrderStatus.NEW,
                     reduce_only=request.reduce_only,
                     post_only=request.post_only,
-                    created_at=int(time.time() * 1000)
+                    created_at=timestamp
                 )
             )
             
         except Exception as e:
+            self.logger.error(f"Order creation failed: {str(e)}", exc_info=True)
             return OrderResult(
                 success=False,
                 error=str(e)
@@ -307,17 +430,37 @@ class HyperliquidService:
             Order result
         """
         try:
+            timestamp = int(time.time() * 1000)
+            
             response = await self._request(
                 "POST",
-                "trade",
+                "exchange",
                 json={
-                    "type": "cancel",
-                    "coin": coin,
-                    "orderId": order_id
+                    "action": {
+                        "type": "cancel",
+                        "cancels": [{
+                            "a": 0,  # BTC is index 0 in universe
+                            "o": int(order_id)
+                        }],
+                        "hyperliquidChain": "Testnet" if self.testnet else "Mainnet",
+                        "signatureChainId": "0xa4b1",  # Arbitrum chain ID
+                        "time": timestamp
+                    },
+                    "nonce": timestamp,
+                    "signature": {
+                        "r": "0x...",  # TODO: Generate signature
+                        "s": "0x...",
+                        "v": 27
+                    }
                 },
                 auth_required=True,
-                rate_limit_type="order"
+                rate_limit_key="order"
             )
+            
+            # Check if cancel was successful
+            status = response.get("response", {}).get("data", {}).get("statuses", [])[0]
+            if status != "success":
+                raise ValueError(f"Cancel failed with status: {status}")
             
             return OrderResult(
                 success=True,
@@ -325,7 +468,7 @@ class HyperliquidService:
                     id=order_id,
                     coin=coin,
                     status=OrderStatus.CANCELLED,
-                    created_at=int(time.time() * 1000)
+                    created_at=timestamp
                 )
             )
             

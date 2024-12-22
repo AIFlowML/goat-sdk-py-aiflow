@@ -1,9 +1,41 @@
+"""
+          _____                    _____                    _____                    _____           _______                   _____          
+         /\    \                  /\    \                  /\    \                  /\    \         /::\    \                 /\    \         
+        /::\    \                /::\    \                /::\    \                /::\____\       /::::\    \               /::\____\        
+       /::::\    \               \:::\    \              /::::\    \              /:::/    /      /::::::\    \             /:::/    /        
+      /::::::\    \               \:::\    \            /::::::\    \            /:::/    /      /::::::::\    \           /:::/   _/___      
+     /:::/\:::\    \               \:::\    \          /:::/\:::\    \          /:::/    /      /:::/~~\:::\    \         /:::/   /\    \     
+    /:::/__\:::\    \               \:::\    \        /:::/__\:::\    \        /:::/    /      /:::/    \:::\    \       /:::/   /::\____\    
+   /::::\   \:::\    \              /::::\    \      /::::\   \:::\    \      /:::/    /      /:::/    / \:::\    \     /:::/   /:::/    /    
+  /::::::\   \:::\    \    ____    /::::::\    \    /::::::\   \:::\    \    /:::/    /      /:::/____/   \:::\____\   /:::/   /:::/   _/___  
+ /:::/\:::\   \:::\    \  /\   \  /:::/\:::\    \  /:::/\:::\   \:::\    \  /:::/    /      |:::|    |     |:::|    | /:::/___/:::/   /\    \ 
+/:::/  \:::\   \:::\____\/::\   \/:::/  \:::\____\/:::/  \:::\   \:::\____\/:::/____/       |:::|____|     |:::|    ||:::|   /:::/   /::\____\
+\::/    \:::\  /:::/    /\:::\  /:::/    \::/    /\::/    \:::\   \::/    /\:::\    \        \:::\    \   /:::/    / |:::|__/:::/   /:::/    /
+ \/____/ \:::\/:::/    /  \:::\/:::/    / \/____/  \/____/ \:::\   \/____/  \:::\    \        \:::\    \ /:::/    /   \:::\/:::/   /:::/    / 
+          \::::::/    /    \::::::/    /                    \:::\    \       \:::\    \        \:::\    /:::/    /     \::::::/   /:::/    /  
+           \::::/    /      \::::/____/                      \:::\____\       \:::\    \        \:::\__/:::/    /       \::::/___/:::/    /   
+           /:::/    /        \:::\    \                       \::/    /        \:::\    \        \::::::::/    /         \:::\__/:::/    /    
+          /:::/    /          \:::\    \                       \/____/          \:::\    \        \::::::/    /           \::::::::/    /     
+         /:::/    /            \:::\    \                                        \:::\    \        \::::/    /             \::::::/    /      
+        /:::/    /              \:::\____\                                        \:::\____\        \::/____/               \::::/    /       
+        \::/    /                \::/    /                                         \::/    /         ~~                      \::/____/        
+         \/____/                  \/____/                                           \/____/                                   ~~              
+                                                                                                                                              
+
+         
+ 
+     GOAT-SDK Python - Unofficial SDK for GOAT - Igor Lessio - AIFlow.ml
+     
+     Path: goat_sdk/plugins/hyperliquid/utils.py
+"""
+
 """Hyperliquid plugin implementation."""
 
 import logging
 from typing import List, Optional, Dict, Any
 
 import aiohttp
+import time
 
 from .service import HyperliquidService
 from .types.order import (
@@ -15,6 +47,7 @@ from .types.market import (
     TradeInfo
 )
 from .config import HyperliquidConfig
+from .types.agent import AgentApprovalRequest, AgentApprovalAction, AgentApprovalResponse
 
 class HyperliquidPlugin:
     """Plugin for interacting with Hyperliquid exchange."""
@@ -267,3 +300,30 @@ class HyperliquidPlugin:
         """
         service = self._get_service(testnet)
         return await service.get_order_status(coin, order_id)
+        
+    async def approve_agent_wallet(
+        self,
+        agent_address: str,
+        agent_name: Optional[str] = None,
+        chain_id: str = "0xa4b1"
+    ) -> Dict[str, Any]:
+        """Approve an API/Agent wallet for trading."""
+        if not self.service:
+            raise ValueError("Service not initialized")
+            
+        action = {
+            "hyperliquidChain": "arbitrum_testnet" if self.service.testnet else "arbitrum",
+            "signatureChainId": chain_id,
+            "agentAddress": agent_address,
+            "agentName": agent_name,
+            "time": int(time.time() * 1000),
+            "nonce": int(time.time() * 1000)
+        }
+        
+        # Send request to the API
+        response = await self.service._request(
+            "POST",
+            "exchange",
+            data={"type": "approveAgent", "action": action}
+        )
+        return response

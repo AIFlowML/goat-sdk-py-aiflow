@@ -1,3 +1,34 @@
+"""
+          _____                    _____                    _____                    _____           _______                   _____          
+         /\    \                  /\    \                  /\    \                  /\    \         /::\    \                 /\    \         
+        /::\    \                /::\    \                /::\    \                /::\____\       /::::\    \               /:::\____\        
+       /::::\    \               \:::\    \              /::::\    \              /:::/    /      /::::::\    \             /:::/    /        
+      /::::::\    \               \:::\    \            /::::::\    \            /:::/    /      /::::::::\    \           /:::/   _/___      
+     /:::/\:::\    \               \:::\    \          /:::/\:::\    \          /:::/    /      /:::/~~\:::\    \         /:::/   /\    \     
+    /:::/__\:::\    \               \:::\    \        /:::/__\:::\    \        /:::/    /      /:::/    \:::\    \       /:::/   /::\____\    
+   /::::\   \:::\    \              /::::\    \      /::::\   \:::\    \      /:::/    /      /:::/    / \:::\    \     /:::/   /:::/    /    
+  /::::::\   \:::\    \    ____    /::::::\    \    /::::::\   \:::\    \    /:::/    /      /:::/____/   \:::\____\   /:::/   /:::/   _/___  
+ /:::/\:::\   \:::\    \  /\   \  /:::/\:::\    \  /:::/\:::\   \:::\    \  /:::/    /      |:::|    |     |:::|    | /:::/___/:::/   /\    \ 
+/:::/  \:::\   \:::\____\/::\   \/:::/  \:::\____\/:::/  \:::\   \:::\____\/:::/____/       |:::|____|     |:::|    ||:::|   /:::/   /::\____\
+\::/    \:::\  /:::/    /\:::\  /:::/    \::/    /\::/    \:::\   \::/    /\:::\    \        \:::\    \   /:::/    / |:::|__/:::/   /:::/    /
+ \/____/ \:::\/:::/    /  \:::\/:::/    / \/____/  \/____/ \:::\   \/____/  \:::\    \        \:::\    \ /:::/    /   \:::\/:::/   /:::/    / 
+          \::::::/    /    \::::::/    /                    \:::\    \       \:::\    \        \:::\    /:::/    /     \::::::/   /:::/    /  
+           \::::/    /      \::::/____/                      \:::\____\       \:::\    \        \:::\__/:::/    /       \::::/___/:::/    /   
+           /:::/    /        \:::\    \                       \::/    /        \:::\    \        \::::::::/    /         \:::\__/:::/    /    
+          /:::/    /          \:::\    \                       \/____/          \:::\    \        \::::::/    /           \::::::::/    /     
+         /:::/    /            \:::\    \                                        \:::\    \        \::::/    /             \::::::/    /      
+        /:::/    /              \:::\____\                                        \:::\____\        \::/____/               \::::/    /       
+        \::/    /                \::/    /                                         \::/    /         ~~                      \::/____/        
+         \/____/                  \/____/                                           \/____/                                   ~~              
+                                                                                                                                              
+
+         
+ 
+     GOAT-SDK Python - Unofficial SDK for GOAT - Igor Lessio - AIFlow.ml
+     
+     Path: goat_sdk/plugins/hyperliquid/utils.py
+"""
+
 """Jupiter service for token swaps."""
 
 from typing import Any, Dict, List, Optional
@@ -8,8 +39,7 @@ from goat_sdk.core.decorators.tool import tool as tool_decorator
 from .client import JupiterClient
 from .config import JupiterConfig
 from .errors import QuoteError, SwapError
-from .types import QuoteResponse, SwapMode, SwapResult
-from .models import QuoteRequest, SwapRequest
+from .types import QuoteRequest, QuoteResponse, SwapMode, SwapRequest, SwapResult
 
 
 class JupiterService:
@@ -43,12 +73,15 @@ class JupiterService:
             QuoteError: If quote request fails
         """
         async with self.client as client:
+            # Convert string swap_mode to SwapMode enum
+            if isinstance(request.swapMode, str):
+                request.swapMode = SwapMode.EXACT_IN if request.swapMode == "ExactIn" else SwapMode.EXACT_OUT
             return await client.get_quote(
-                input_mint=request.input_mint,
-                output_mint=request.output_mint,
-                amount=request.amount,
-                slippage_bps=request.slippage_bps,
-                mode=request.swap_mode,
+                input_mint=request.inputMint,
+                output_mint=request.outputMint,
+                amount=int(request.amount),
+                slippage_bps=request.slippageBps,
+                mode=request.swapMode,
                 **kwargs,
             )
 
