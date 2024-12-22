@@ -2,8 +2,25 @@
 
 import pytest
 from pydantic import ValidationError
+import os
 
-from ..config import JupiterConfig
+from goat_sdk.plugins.jupiter.config import JupiterConfig
+
+
+@pytest.fixture(autouse=True)
+def mock_env_vars(monkeypatch):
+    """Mock environment variables."""
+    monkeypatch.delenv("JUPITER_API_KEY", raising=False)
+    monkeypatch.delenv("JUPITER_API_URL", raising=False)
+    monkeypatch.delenv("JUPITER_MAX_RETRIES", raising=False)
+    monkeypatch.delenv("JUPITER_RETRY_DELAY", raising=False)
+    monkeypatch.delenv("JUPITER_TIMEOUT", raising=False)
+    monkeypatch.delenv("JUPITER_DEFAULT_SLIPPAGE_BPS", raising=False)
+    monkeypatch.delenv("JUPITER_AUTO_RETRY_ON_TIMEOUT", raising=False)
+    monkeypatch.delenv("JUPITER_AUTO_RETRY_ON_RATE_LIMIT", raising=False)
+    monkeypatch.delenv("JUPITER_COMPUTE_UNIT_PRICE", raising=False)
+    monkeypatch.delenv("JUPITER_MAX_ACCOUNTS_PER_TX", raising=False)
+    monkeypatch.delenv("JUPITER_PREFER_POST_MINT", raising=False)
 
 
 def test_default_config():
@@ -17,7 +34,7 @@ def test_default_config():
     assert config.auto_retry_on_timeout is True
     assert config.auto_retry_on_rate_limit is True
     assert config.api_key is None
-    assert config.compute_unit_price_micro_lamports is None
+    assert config.compute_unit_price_micro_lamports == 1000
     assert config.max_accounts_per_transaction == 64
     assert config.prefer_post_mint_version is True
 

@@ -1,148 +1,138 @@
-# GOAT SDK for Python 🐐
+# GOAT 🐐 in Python
 
-This is the official Python implementation of the GOAT SDK, providing a comprehensive toolkit for interacting with various blockchain networks and protocols. Built with Python's strong typing system and modern best practices, it offers a seamless experience for developers building blockchain applications.
+Unofficial SDK to add blockchain tools to your AI agent written in Python, designed for Solana and Mode. 
+Original repo: https://github.com/goat-sdk/goat
 
-## Features
+### Features
 
-- **Core SDK Functionality**
-  - Chain-agnostic architecture
-  - Comprehensive type system
-  - Robust error handling
-  - Async/await support
+- **Multi-Chain Support**: Works seamless with Solana and Mode
+- **Plugin Architecture**: Modular design for easy extensibility
+- **AI Integration**: Built-in support for LangChain and LlamaIndex
+- **Type Safety**: Full TypeScript-like typing with Pydantic
+- **Async First**: Modern async/await design
+- **Error Handling**: Comprehensive error types and handling
 
-- **Plugin System**
-  - ERC20 token support for Mode Network
-  - SPL token support for Solana
-  - NFT support (coming soon)
-  - Extensible plugin architecture
+### Available Plugins
 
-- **Network Support**
-  - Mode Network integration
-  - Solana integration
-  - Local development with Ganache
-  - Easy network switching
+- **SPL Token Plugin**: Interact with SPL tokens on Solana and Mode networks
+  - Token balance queries
+  - Token transfers
+  - Account existence checks
+  - Token metadata retrieval
+  - Base unit conversion utilities
 
-- **Developer Experience**
-  - Type hints throughout
-  - Comprehensive documentation
-  - Extensive test coverage
-  - Example applications
-
-## Installation
-
-```bash
-pip install goat-sdk
-```
+- **Solana NFT Plugin**: Work with NFTs on the Solana blockchain
+  - NFT metadata retrieval
+  - NFT transfers
+  - Collection queries
+  - Ownership verification
+  - Metadata updates
 
 ## Quick Start
 
-### ERC20 Token Operations on Mode Network
+#### Prerequisites
+
+- Python 3.9 or higher
+- Poetry 1.7 or higher
+
+### Installation
+
+#### 1. Using poetry (recommended)
+```bash
+poetry add GOAT-sdk-py
+
+# Add plugins as needed
+poetry add "GOAT-sdk-py[spl-token]"  # For SPL token support
+poetry add "GOAT-sdk-py[solana-nft]" # For Solana NFT support
+```
+
+#### 2. Using pip
+
+```bash
+pip install GOAT-sdk-py
+pip install "GOAT-sdk-py[spl-token]"  # For SPL token support
+pip install "GOAT-sdk-py[solana-nft]" # For Solana NFT support
+```
+
+### Setup
 
 ```python
 from goat_sdk import GoatSDK
-from goat_sdk.plugins.ERC20 import ERC20Plugin, DeployTokenParams
+from goat_sdk.core.types import Network, Chain
+from goat_sdk.plugins.spl_token import SplTokenPlugin
 
-# Initialize the SDK with Mode Network
+# Initialize SDK
 sdk = GoatSDK(
-    private_key="your_private_key",
-    provider_url="https://sepolia.mode.network"
+    private_key="your_private_key", 
+    network=Network.MAINNET,
+    chain=Chain.SOLANA
 )
 
-# Initialize ERC20 plugin
-erc20 = ERC20Plugin(sdk)
-
-# Deploy a new token
-token = await erc20.deploy_token(DeployTokenParams(
-    name="My Token",
-    symbol="MTK",
-    initial_supply=1000000
-))
-
-print(f"Token deployed at: {token.contract_address}")
-```
-
-### SPL Token Operations on Solana
-
-```python
-from goat_sdk.plugins.spl_token import SplTokenPlugin, MintTokenParams
-
-# Initialize the SDK with Solana
-sdk = GoatSDK(
-    private_key="your_private_key",
-    provider_url="https://api.devnet.solana.com"
-)
-
-# Initialize SPL Token plugin
+# Initialize plugin
 spl = SplTokenPlugin(sdk)
 
-# Mint new tokens
-result = await spl.mint_token(MintTokenParams(
-    amount=1000,
-    recipient="recipient_address"
-))
+# Get token balance
+balance = await spl.get_token_balance(
+    mint_address="your_token_mint",
+    owner_address="your_wallet"
+)
 
-print(f"Tokens minted: {result.signature}")
+# Transfer tokens
+result = await spl.transfer_token(
+    mint_address="token_mint",
+    to_address="recipient",
+    amount=1000000  # in base units
+)
 ```
+
+### Documentation
+
+- [Getting Started](goat_sdk/docs/getting-started.md)
+- [Plugin Guide](goat_sdk/docs/plugin-guide.md)
+- [API Reference](goat_sdk/docs/api-reference.md)
+- [Error Handling](goat_sdk/docs/error-handling.md)
+- [AI Integration](goat_sdk/docs/ai-integration.md)
 
 ## Development
 
-### Setting Up the Environment
-
+Contributions are welcome! Please feel free to submit a PR.
 ```bash
-# Clone the repository
-git clone https://github.com/goat-sdk/python-goat.git
-cd python-goat
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+# Clone repository
+git clone https://github.com/AIFlowML/GOAT-sdk-py.git
+cd GOAT-sdk-py
 
 # Install dependencies
-pip install -r requirements.txt
+poetry install
 
 # Install development dependencies
-pip install -r requirements-dev.txt
+poetry install --with dev
+
+# Run tests
+poetry run pytest tests/
 ```
 
-### Running Tests
 
-```bash
-# Run all tests
-pytest
 
-# Run specific plugin tests
-pytest tests/plugins/ERC20
-pytest tests/plugins/spl_token
 
-# Run with coverage
-pytest --cov=goat_sdk
-```
+### License
 
-## Project Structure
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![Poetry](https://img.shields.io/badge/poetry-1.7%2B-blue)](https://python-poetry.org/)
 
-```
-goat_sdk/
-├── core/           # Core SDK functionality
-│   ├── chain.py    # Chain definitions
-│   └── types/      # Core type definitions
-├── plugins/        # Plugin implementations
-│   ├── ERC20/      # Mode Network ERC20 plugin
-│   └── spl_token/  # Solana SPL Token plugin
-├── docs/          # Documentation
-└── tests/         # Test suite
-```
 
-## Documentation
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- [Getting Started](https://github.com/goat-sdk/python-goat/tree/main/goat_sdk/docs/getting-started.md)
-- [API Reference](https://github.com/goat-sdk/python-goat/tree/main/goat_sdk/docs/api-reference.md)
-- [Plugin Guide](https://github.com/goat-sdk/python-goat/tree/main/goat_sdk/docs/plugin-guide.md)
-- [Examples](https://github.com/goat-sdk/python-goat/tree/main/examples)
+### Author
 
-## Contributing
+**Igor Lessio**
 
-We welcome contributions! Please see our [Contributing Guide](https://github.com/goat-sdk/python-goat/tree/main/CONTRIBUTING.md) for details.
+email: ilessio.aimaster@gmail.com
 
-## License
+### Disclaimer
 
-MIT License - see [LICENSE](LICENSE) for details.
+This is an unofficial implementation of the GOAT SDK. It is not affiliated with, officially connected to, or endorsed by the official GOAT SDK team.
+
+### Acknowledgments
+
+Special thanks to Akhtar for the opportunity to create this SDK.

@@ -2,7 +2,7 @@
 
 import os
 from typing import Optional
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, validator
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -19,7 +19,7 @@ class JupiterConfig(BaseModel):
 
     # Authentication
     api_key: Optional[str] = Field(
-        default_factory=lambda: os.getenv("JUPITER_API_KEY"),
+        default=None,
         description="API key for Jupiter API"
     )
 
@@ -57,21 +57,28 @@ class JupiterConfig(BaseModel):
     )
 
     # Compute Settings
-    compute_unit_price_micro_lamports: Optional[int] = Field(
-        default=os.getenv("JUPITER_COMPUTE_UNIT_PRICE") and int(os.getenv("JUPITER_COMPUTE_UNIT_PRICE")),
+    compute_unit_price_micro_lamports: int = Field(
+        default=int(os.getenv("JUPITER_COMPUTE_UNIT_PRICE", "1000")),
         description="Compute unit price in micro lamports",
         ge=0,
     )
     max_accounts_per_transaction: int = Field(
         default=int(os.getenv("JUPITER_MAX_ACCOUNTS_PER_TX", "64")),
         description="Maximum number of accounts per transaction",
-        ge=1,
+        gt=0,
         le=256,
     )
     prefer_post_mint_version: bool = Field(
         default=os.getenv("JUPITER_PREFER_POST_MINT", "true").lower() == "true",
-        description="Whether to prefer post mint version for token accounts"
+        description="Whether to prefer post mint version"
     )
+
+    @validator("api_url")
+    def validate_api_url(cls, v: str) -> str:
+        """Validate API URL."""
+        if not str(v).startswith("http"):
+            raise ValueError("API URL must start with http or https")
+        return v
 
     class Config:
         """Pydantic model configuration."""

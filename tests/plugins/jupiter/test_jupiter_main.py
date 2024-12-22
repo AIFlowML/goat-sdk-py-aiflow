@@ -3,6 +3,7 @@
 import pytest
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, create_autospec
+import asyncio
 
 from goat_sdk.plugins.jupiter.models import QuoteRequest, SwapRequest
 from goat_sdk.plugins.jupiter.types import SwapMode, QuoteResponse, SwapResult
@@ -25,10 +26,12 @@ def mock_wallet_client():
     """Create a mock wallet client."""
     client = create_autospec(ModeWalletClient, instance=True)
     client.deserialize_transaction = AsyncMock(return_value="0x" + "33" * 32)
-    client.sign_and_send_transaction = AsyncMock()
+    
     async def mock_send_transaction(*args, **kwargs):
+        await asyncio.sleep(0)  # Ensure it's a coroutine
         return "0x" + "22" * 32
-    client.sign_and_send_transaction = AsyncMock(side_effect=mock_send_transaction)
+    
+    client.send_transaction = mock_send_transaction
     client.public_key = "0x" + "44" * 32
     return client
 

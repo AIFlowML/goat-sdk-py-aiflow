@@ -37,7 +37,7 @@ def valid_nft_metadata():
         image="https://test.uri/image.png",
         seller_fee_basis_points=500,
         attributes=[{"trait_type": "test", "value": "test"}],
-        collection={"name": "Test Collection", "family": "Test"},
+        collection={"name": "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY", "family": "Test"},
         creators=[
             Creator(
                 address="GkXP89QxPPvQBhvYxKQq1yGgZ3CrBZod1pBAKnKXXGBJ",
@@ -70,7 +70,7 @@ class TestNFTPlugin:
                 accounts=[
                     AccountMeta(pubkey=Pubkey.from_string(params.mint_address), is_signer=False, is_writable=True),
                     AccountMeta(pubkey=Pubkey.from_string(params.to_address), is_signer=False, is_writable=True),
-                    AccountMeta(pubkey=mock_wallet_client.public_key, is_signer=True, is_writable=False)
+                    AccountMeta(pubkey=nft_plugin.wallet_client.public_key, is_signer=True, is_writable=False)
                 ],
                 data=b"\x03"  # Transfer instruction
             )
@@ -82,9 +82,9 @@ class TestNFTPlugin:
                 Pubkey.from_string(params.mint_address),
                 Pubkey.from_string(params.to_address)
             )
-            mock_wallet_client.send_transaction.assert_called_once()
+            nft_plugin.wallet_client.send_transaction.assert_called_once()
             assert isinstance(
-                mock_wallet_client.send_transaction.call_args[0][0],
+                nft_plugin.wallet_client.send_transaction.call_args[0][0],
                 Transaction
             )
             assert result == "test_signature"
@@ -140,7 +140,7 @@ class TestNFTPlugin:
             assert isinstance(result, NFTInfo)
             assert result.mint_address == str(mock_mint.public_key)
             assert result.metadata_address == "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY"
-            assert result.update_authority == str(mock_wallet_client.public_key)
+            assert result.update_authority == str(nft_plugin.wallet_client.public_key)
             assert result.metadata == valid_nft_metadata
             mock_verify_collection.assert_called_once()
             mock_verify_creator.assert_called_once()
