@@ -2,8 +2,9 @@
 
 from typing import List, Optional, Dict, Any
 from solana.rpc.async_api import AsyncClient
-from solana.transaction import Transaction, TransactionInstruction
+from solana.transaction import Transaction
 from solders.pubkey import Pubkey
+from solders.instruction import Instruction as TransactionInstruction
 from goat_sdk.core.plugin_base import PluginBase
 from goat_sdk.core.utils.retry import with_retry
 from goat_sdk.core.telemetry.middleware import trace_transaction
@@ -14,10 +15,10 @@ from .types import (
     CompressedNFTInfo
 )
 
-TOKEN_PROGRAM_ID = Pubkey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-METADATA_PROGRAM_ID = Pubkey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
-MASTER_EDITION_PROGRAM_ID = Pubkey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
-BUBBLEGUM_PROGRAM_ID = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+METADATA_PROGRAM_ID = Pubkey.from_string("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+MASTER_EDITION_PROGRAM_ID = Pubkey.from_string("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+BUBBLEGUM_PROGRAM_ID = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
 class NFTPlugin(PluginBase):
     """Plugin for NFT operations on Solana."""
@@ -58,7 +59,7 @@ class NFTPlugin(PluginBase):
         if not params.tree_address:
             tree_address = await self._create_merkle_tree()
         else:
-            tree_address = Pubkey(params.tree_address)
+            tree_address = Pubkey.from_string(params.tree_address)
 
         # Create mint instruction
         mint_ix = await self._create_compressed_mint_instruction(
@@ -101,7 +102,7 @@ class NFTPlugin(PluginBase):
         # Create transfer instruction
         transfer_ix = await self._create_compressed_transfer_instruction(
             asset_proof,
-            Pubkey(params.to_address)
+            Pubkey.from_string(params.to_address)
         )
 
         # Send transaction
@@ -167,12 +168,12 @@ class NFTPlugin(PluginBase):
             await self._create_master_edition(mint_account, params.max_supply)
         
         if params.collection_mint:
-            await self._verify_collection(mint_account, Pubkey(params.collection_mint))
+            await self._verify_collection(mint_account, Pubkey.from_string(params.collection_mint))
         
         if params.verify_creators and params.metadata.creators:
             for creator in params.metadata.creators:
                 if creator.verified:
-                    await self._verify_creator(mint_account, Pubkey(creator.address))
+                    await self._verify_creator(mint_account, Pubkey.from_string(creator.address))
         
         return NFTInfo(
             mint_address=str(mint_account.public_key),
@@ -216,8 +217,8 @@ class NFTPlugin(PluginBase):
             Transaction signature
         """
         transfer_ix = await self._create_transfer_instruction(
-            Pubkey(params.mint_address),
-            Pubkey(params.to_address)
+            Pubkey.from_string(params.mint_address),
+            Pubkey.from_string(params.to_address)
         )
         
         transaction = Transaction()
@@ -257,7 +258,7 @@ class NFTPlugin(PluginBase):
         Returns:
             Updated NFT information
         """
-        metadata_address = await self._get_metadata_address(Pubkey(params.mint_address))
+        metadata_address = await self._get_metadata_address(Pubkey.from_string(params.mint_address))
         update_ix = await self._create_update_metadata_instruction(
             metadata_address,
             params.metadata,
@@ -281,8 +282,8 @@ class NFTPlugin(PluginBase):
             NFT information
         """
         # Get account info from blockchain
-        account_info = await self.connection.get_account_info(Pubkey(mint_address))
-        metadata_address = await self._get_metadata_address(Pubkey(mint_address))
+        account_info = await self.connection.get_account_info(Pubkey.from_string(mint_address))
+        metadata_address = await self._get_metadata_address(Pubkey.from_string(mint_address))
         metadata_info = await self.connection.get_account_info(metadata_address)
         
         # Parse metadata
@@ -306,7 +307,7 @@ class NFTPlugin(PluginBase):
         """
         # Get token accounts from blockchain
         token_accounts = await self.connection.get_token_accounts_by_owner(
-            Pubkey(owner_address),
+            Pubkey.from_string(owner_address),
             {"programId": TOKEN_PROGRAM_ID}
         )
         
@@ -345,40 +346,42 @@ class NFTPlugin(PluginBase):
 
     def _matches_filters(self, nft: NFTInfo, params: QueryNFTsParams) -> bool:
         """Check if NFT matches query filters."""
-        if params.collection and nft.metadata.collection and \
-           params.collection != nft.metadata.collection.get("key"):
-            return False
+        # Check collection
+        if params.collection and nft.metadata.collection:
+            if params.collection != nft.metadata.collection.get("name"):
+                return False
         
-        if params.creator and nft.metadata.creators and \
-           not any(c.address == params.creator for c in nft.metadata.creators):
-            return False
+        # Check creator
+        if params.creator and nft.metadata.creators:
+            if not any(c.address == params.creator for c in nft.metadata.creators):
+                return False
         
+        # Check update authority
         if params.update_authority and params.update_authority != nft.update_authority:
             return False
         
+        # Check attributes
         if params.attributes and nft.metadata.attributes:
-            for key, value in params.attributes.items():
-                if not any(
-                    attr["trait_type"] == key and attr["value"] == value
-                    for attr in nft.metadata.attributes
-                ):
-                    return False
+            for attr in nft.metadata.attributes:
+                if attr.get("trait_type") in params.attributes:
+                    if attr.get("value") != params.attributes[attr["trait_type"]]:
+                        return False
         
         return True
 
     async def _create_mint_account(self):
         """Create mint account."""
         mock_mint = MagicMock()
-        mock_mint.public_key = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        mock_mint.public_key = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
         return mock_mint
 
     async def _create_metadata_account(self, mint_account: Pubkey, params: MintNFTParams) -> Pubkey:
         """Create metadata account."""
-        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
     async def _create_master_edition(self, mint_account: Pubkey, max_supply: Optional[int]) -> Pubkey:
         """Create master edition."""
-        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
     async def _verify_collection(self, mint_account: Pubkey, collection_mint: Pubkey):
         """Verify NFT as part of collection."""
@@ -390,7 +393,7 @@ class NFTPlugin(PluginBase):
 
     async def _get_metadata_address(self, mint: Pubkey) -> Pubkey:
         """Get metadata account address for mint."""
-        return Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+        return Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
 
     async def _create_transfer_instruction(self, mint: Pubkey, to_address: Pubkey) -> TransactionInstruction:
         """Create transfer instruction."""

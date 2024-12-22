@@ -3,7 +3,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from solders.pubkey import Pubkey
-from solana.transaction import Transaction, TransactionInstruction
+from solders.instruction import AccountMeta, Instruction
+from solana.transaction import Transaction
 from goat_sdk.plugins.nft.plugin import NFTPlugin, TOKEN_PROGRAM_ID
 from goat_sdk.plugins.nft.types import (
     TransferNFTParams, MintNFTParams, NFTMetadata, NFTInfo,
@@ -18,7 +19,7 @@ def mock_wallet_client():
     client.provider_url = "https://api.mainnet-beta.solana.com"
     client.get_address = MagicMock(return_value="GkXP89QxPPvQBhvYxKQq1yGgZ3CrBZod1pBAKnKXXGBJ")
     client.send_transaction = AsyncMock(return_value={"hash": "test_signature"})
-    client.public_key = Pubkey("GkXP89QxPPvQBhvYxKQq1yGgZ3CrBZod1pBAKnKXXGBJ")
+    client.public_key = Pubkey.from_string("GkXP89QxPPvQBhvYxKQq1yGgZ3CrBZod1pBAKnKXXGBJ")
     return client
 
 @pytest.fixture
@@ -64,12 +65,12 @@ class TestNFTPlugin:
 
         with patch.object(nft_plugin, '_create_transfer_instruction') as mock_create_ix:
             # Create a valid instruction for mocking
-            mock_ix = TransactionInstruction(
+            mock_ix = Instruction(
                 program_id=TOKEN_PROGRAM_ID,
-                keys=[
-                    {"pubkey": Pubkey(params.mint_address), "is_signer": False, "is_writable": True},
-                    {"pubkey": Pubkey(params.to_address), "is_signer": False, "is_writable": True},
-                    {"pubkey": mock_wallet_client.public_key, "is_signer": True, "is_writable": False}
+                accounts=[
+                    AccountMeta(pubkey=Pubkey.from_string(params.mint_address), is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=Pubkey.from_string(params.to_address), is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=mock_wallet_client.public_key, is_signer=True, is_writable=False)
                 ],
                 data=b"\x03"  # Transfer instruction
             )
@@ -78,8 +79,8 @@ class TestNFTPlugin:
             result = await nft_plugin.transfer_nft(params)
 
             mock_create_ix.assert_called_once_with(
-                Pubkey(params.mint_address),
-                Pubkey(params.to_address)
+                Pubkey.from_string(params.mint_address),
+                Pubkey.from_string(params.to_address)
             )
             mock_wallet_client.send_transaction.assert_called_once()
             assert isinstance(
@@ -100,9 +101,9 @@ class TestNFTPlugin:
         )
 
         with patch.object(nft_plugin, '_create_transfer_instruction') as mock_create_ix:
-            mock_ix = TransactionInstruction(
+            mock_ix = Instruction(
                 program_id=TOKEN_PROGRAM_ID,
-                keys=[],
+                accounts=[],
                 data=b"\x03"
             )
             mock_create_ix.return_value = mock_ix
@@ -130,9 +131,9 @@ class TestNFTPlugin:
              patch.object(nft_plugin, '_verify_creator') as mock_verify_creator:
             
             mock_mint = MagicMock()
-            mock_mint.public_key = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_mint.public_key = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
             mock_create_mint.return_value = mock_mint
-            mock_create_metadata.return_value = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_create_metadata.return_value = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
             
             result = await nft_plugin.mint_nft(params)
             
@@ -159,9 +160,9 @@ class TestNFTPlugin:
              patch.object(nft_plugin, '_create_master_edition') as mock_create_master:
             
             mock_mint = MagicMock()
-            mock_mint.public_key = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_mint.public_key = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
             mock_create_mint.return_value = mock_mint
-            mock_create_metadata.return_value = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_create_metadata.return_value = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
             
             result = await nft_plugin.bulk_mint_nft(params)
             assert len(result) == 2
@@ -181,11 +182,11 @@ class TestNFTPlugin:
         with patch.object(nft_plugin, '_create_update_metadata_instruction') as mock_create_ix, \
              patch.object(nft_plugin, '_get_metadata_address') as mock_get_metadata:
             
-            mock_get_metadata.return_value = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
-            mock_ix = TransactionInstruction(
+            mock_get_metadata.return_value = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_ix = Instruction(
                 program_id=TOKEN_PROGRAM_ID,
-                keys=[],
-                data=b"\x04"
+                accounts=[],
+                data=b"\x04"  # Update metadata instruction
             )
             mock_create_ix.return_value = mock_ix
             
@@ -205,11 +206,11 @@ class TestNFTPlugin:
                 'result': {
                     'value': {
                         'data': [1, 'base64_encoded_data'],
-                        'owner': str(Pubkey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"))
+                        'owner': str(Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"))
                     }
                 }
             }
-            mock_get_metadata.return_value = Pubkey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
+            mock_get_metadata.return_value = Pubkey.from_string("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY")
             
             nft_info = await nft_plugin.get_nft(mint_address)
             assert nft_info.mint_address == mint_address

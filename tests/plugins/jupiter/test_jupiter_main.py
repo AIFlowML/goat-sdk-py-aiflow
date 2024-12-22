@@ -26,7 +26,9 @@ def mock_wallet_client():
     client = create_autospec(ModeWalletClient, instance=True)
     client.deserialize_transaction = AsyncMock(return_value="0x" + "33" * 32)
     client.sign_and_send_transaction = AsyncMock()
-    client.sign_and_send_transaction.return_value = "0x" + "22" * 32
+    async def mock_send_transaction(*args, **kwargs):
+        return "0x" + "22" * 32
+    client.sign_and_send_transaction = AsyncMock(side_effect=mock_send_transaction)
     client.public_key = "0x" + "44" * 32
     return client
 
@@ -71,12 +73,6 @@ async def test_swap_tokens(jupiter_client, mock_quote_response, mock_swap_respon
     # Mock swap response
     mock_response.json.return_value = mock_swap_response.model_dump()
     mock_session.post.return_value = mock_response
-
-    # Mock wallet client responses
-    mock_wallet_client.deserialize_transaction = AsyncMock(return_value="0x" + "33" * 32)
-    mock_wallet_client.sign_and_send_transaction = AsyncMock()
-    await mock_wallet_client.sign_and_send_transaction.return_value
-    mock_wallet_client.sign_and_send_transaction.return_value = "0x" + "22" * 32
 
     request = SwapRequest(
         wallet_client=mock_wallet_client,
